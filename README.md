@@ -3,7 +3,7 @@
 Editor de `level.dat` do Minecraft Bedrock que roda 100% no navegador.
 Seu arquivo nunca sai do seu computador.
 
-**Acesse:** https://SEU_USUARIO.github.io/bedrock-level-editor/
+**Acesse:** https://darozbruninho2-spec.github.io/bedrock-level-editor/
 
 ## O que faz
 - Decodifica o `level.dat` (NBT Little-Endian com cabeçalho de 8 bytes) para JSON
