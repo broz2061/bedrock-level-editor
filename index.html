@@ -1,0 +1,1124 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bedrock .dat Editor — edite o level.dat do Minecraft Bedrock no navegador</title>
+<meta name="description" content="Edite o level.dat do seu mundo do Minecraft Bedrock direto no navegador: modo de jogo, dificuldade, gamerules e mais. Seu arquivo nunca sai do seu computador.">
+<style>
+:root{
+  --bg:#0a0e16; --panel:#111827; --panel2:#172033; --line:#26324b; --line2:#34425f;
+  --text:#e7ecf6; --muted:#93a0bb; --accent:#34d399; --accent-d:#10b981; --accent2:#60a5fa;
+  --danger:#f87171; --warn:#fbbf24; --radius:16px;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;color:var(--text);line-height:1.55;
+  background:
+    radial-gradient(900px 500px at 15% -10%,rgba(52,211,153,.14),transparent 60%),
+    radial-gradient(800px 500px at 100% 0%,rgba(96,165,250,.13),transparent 60%),
+    var(--bg);
+  background-attachment:fixed;min-height:100vh}
+.hidden{display:none !important}
+a{color:var(--accent2)}
+code{font-family:var(--mono);font-size:.88em;background:rgba(255,255,255,.06);padding:.1em .4em;border-radius:6px;color:#fcd9a8}
+.wrap{max-width:1040px;margin:0 auto;padding:0 22px}
+
+/* ---------- topo ---------- */
+.topbar{position:sticky;top:0;z-index:20;backdrop-filter:blur(10px);background:rgba(10,14,22,.72);border-bottom:1px solid var(--line)}
+.topbar .wrap{display:flex;align-items:center;justify-content:space-between;height:60px}
+.brand{display:flex;align-items:center;gap:10px;font-weight:800;letter-spacing:.2px;color:var(--text);text-decoration:none}
+.brand .logo{width:28px;height:28px;border-radius:7px;background:linear-gradient(135deg,var(--accent),var(--accent2));display:grid;place-items:center;color:#06281d;font-size:15px;font-weight:900}
+.toplinks a{color:var(--muted);text-decoration:none;margin-left:20px;font-size:.95rem}
+.toplinks a:hover{color:var(--text)}
+
+/* ---------- botões ---------- */
+.btn{display:inline-block;text-decoration:none;text-align:center;appearance:none;border:0;cursor:pointer;font:inherit;font-weight:700;border-radius:12px;padding:12px 22px;color:var(--text);
+  background:var(--panel2);border:1px solid var(--line2);transition:transform .15s,box-shadow .2s,background .2s,border-color .2s}
+.btn:hover{transform:translateY(-2px);border-color:var(--accent2)}
+.btn:active{transform:translateY(0)}
+.btn:disabled{opacity:.45;cursor:not-allowed;transform:none}
+.btn-primary{background:linear-gradient(135deg,var(--accent),#22d3ee);color:#04231a;border:0;box-shadow:0 8px 26px rgba(52,211,153,.28)}
+.btn-primary:hover{box-shadow:0 12px 34px rgba(52,211,153,.42);border:0}
+.btn-big{font-size:1.15rem;padding:16px 34px;border-radius:14px}
+.btn-sm{padding:7px 14px;font-size:.85rem;border-radius:9px;font-weight:600}
+
+/* ---------- landing ---------- */
+.hero{padding:84px 0 40px;text-align:center;position:relative}
+.pill{display:inline-block;padding:6px 14px;border:1px solid var(--line2);border-radius:999px;color:var(--accent);font-size:.85rem;font-weight:600;background:rgba(52,211,153,.07)}
+.hero h1{font-size:clamp(2rem,5vw,3.3rem);line-height:1.08;margin:20px 0 16px;letter-spacing:-1px}
+.grad{background:linear-gradient(120deg,var(--accent),var(--accent2) 60%,#c084fc);-webkit-background-clip:text;background-clip:text;color:transparent}
+.hero p.lead{max-width:680px;margin:0 auto 30px;color:var(--muted);font-size:1.15rem}
+.badges{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:26px}
+.badge{font-size:.85rem;color:var(--muted);border:1px solid var(--line);padding:6px 12px;border-radius:999px;background:rgba(255,255,255,.03)}
+.cubes{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.cube{position:absolute;width:46px;height:46px;border-radius:9px;opacity:.55;animation:float 7s ease-in-out infinite}
+.cube.c1{left:7%;top:90px;background:linear-gradient(135deg,#34d399,#059669)}
+.cube.c2{right:9%;top:150px;background:linear-gradient(135deg,#60a5fa,#4f46e5);animation-delay:-2s;width:34px;height:34px}
+.cube.c3{left:15%;top:330px;background:linear-gradient(135deg,#fbbf24,#d97706);animation-delay:-4s;width:28px;height:28px}
+@keyframes float{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-18px) rotate(14deg)}}
+.section{padding:44px 0}
+.section h2{font-size:1.7rem;margin:0 0 8px;letter-spacing:-.4px}
+.section .sub{color:var(--muted);margin:0 0 26px}
+.grid{display:grid;gap:16px}
+.g3{grid-template-columns:repeat(auto-fit,minmax(230px,1fr))}
+.g4{grid-template-columns:repeat(auto-fit,minmax(210px,1fr))}
+.card{background:linear-gradient(180deg,rgba(255,255,255,.035),rgba(255,255,255,.015));border:1px solid var(--line);border-radius:var(--radius);padding:22px;transition:transform .2s,border-color .2s}
+.card:hover{transform:translateY(-3px);border-color:var(--line2)}
+.card .ico{font-size:1.9rem;margin-bottom:8px}
+.card h3{margin:0 0 6px;font-size:1.08rem}
+.card p{margin:0;color:var(--muted);font-size:.95rem}
+.step-n{width:34px;height:34px;border-radius:10px;background:rgba(52,211,153,.14);color:var(--accent);display:grid;place-items:center;font-weight:800;margin-bottom:12px}
+.callout{border:1px solid rgba(251,191,36,.4);background:rgba(251,191,36,.07);border-radius:var(--radius);padding:18px 22px;color:#f6e3b0}
+.cta-band{text-align:center;padding:50px 22px;margin:20px 0 60px;border:1px solid var(--line);border-radius:22px;
+  background:radial-gradient(600px 220px at 50% 0%,rgba(52,211,153,.14),transparent 70%),var(--panel)}
+.cta-band h2{margin:0 0 18px}
+details.faq{border:1px solid var(--line);border-radius:12px;padding:14px 18px;margin-bottom:10px;background:rgba(255,255,255,.02)}
+details.faq summary{cursor:pointer;font-weight:600}
+details.faq p{color:var(--muted);margin:10px 0 0}
+footer{border-top:1px solid var(--line);padding:26px 0 40px;color:var(--muted);font-size:.88rem;text-align:center}
+
+/* ---------- editor ---------- */
+.app-head{padding:34px 0 6px}
+.app-head h1{margin:0 0 6px;font-size:2rem;letter-spacing:-.5px}
+.app-head p{margin:0;color:var(--muted)}
+.panel,#editorArea{scroll-margin-top:76px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:26px;margin:22px 0}
+.panel-title{display:flex;align-items:center;gap:12px;margin:0 0 6px;font-size:1.25rem}
+.num{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#04231a;font-weight:900;font-size:.95rem;flex:none}
+.panel-desc{margin:0 0 18px;color:var(--muted);font-size:.95rem}
+
+.drop{display:block;position:relative;cursor:pointer;text-align:center;padding:44px 20px;border-radius:18px;border:2px dashed var(--line2);
+  background:radial-gradient(500px 160px at 50% 0%,rgba(96,165,250,.10),transparent 70%),var(--panel2);
+  transition:border-color .2s,transform .2s,box-shadow .25s,background .2s}
+.drop:hover,.drop.over,.drop:focus-within{border-color:var(--accent);transform:translateY(-2px);box-shadow:0 0 0 5px rgba(52,211,153,.12),0 14px 40px rgba(0,0,0,.35)}
+.drop.has{border-style:solid;border-color:var(--accent)}
+.drop input{position:absolute;width:1px;height:1px;opacity:0;overflow:hidden}
+.drop svg{width:58px;height:58px;color:var(--accent);margin-bottom:8px}
+.drop .t1{font-size:1.25rem;font-weight:800}
+.drop .t2{color:var(--muted);font-size:.95rem;margin-top:4px}
+.drop .fake{display:inline-block;margin-top:16px;padding:11px 26px;border-radius:12px;font-weight:800;color:#04231a;background:linear-gradient(135deg,var(--accent),#22d3ee);box-shadow:0 8px 24px rgba(52,211,153,.28)}
+.center{text-align:center}
+.actions{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:20px}
+.status{margin-top:14px;font-weight:600;font-size:.95rem;min-height:1.4em;white-space:pre-wrap;word-break:break-word}
+.status.ok{color:var(--accent)} .status.err{color:var(--danger)} .status.wait{color:var(--warn)}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;justify-content:center}
+.chip{font-size:.82rem;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:4px 12px;background:rgba(255,255,255,.03)}
+.chip b{color:var(--text)}
+
+.editor-panel{border-color:rgba(52,211,153,.45);box-shadow:0 0 0 1px rgba(52,211,153,.12),0 20px 60px rgba(0,0,0,.4)}
+.toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.toolbar .grow{flex:1}
+textarea.json{width:100%;height:440px;resize:vertical;background:#0b1220;color:#8be9c8;border:1px solid var(--line2);border-radius:12px;
+  padding:16px;font-family:var(--mono);font-size:13.5px;line-height:1.5;white-space:pre;overflow:auto;tab-size:2;outline:none;transition:border-color .2s,box-shadow .2s}
+textarea.json:focus{border-color:var(--accent);box-shadow:0 0 0 4px rgba(52,211,153,.12)}
+textarea.json.bad{border-color:var(--danger);box-shadow:0 0 0 4px rgba(248,113,113,.12)}
+.vstatus{font-size:.92rem;font-weight:600;margin-top:10px;word-break:break-word}
+.vstatus.ok{color:var(--accent)} .vstatus.err{color:var(--danger)}
+.legend{font-size:.85rem;color:var(--muted);margin-top:8px}
+
+/* ---------- editor guiado ---------- */
+.search{width:100%;max-width:460px;padding:10px 14px;border-radius:10px;border:1px solid var(--line2);background:#0b1220;color:var(--text);font:inherit;outline:none}
+.search:focus{border-color:var(--accent2)}
+.locked-banner{display:none;border:1px solid rgba(248,113,113,.5);background:rgba(248,113,113,.08);color:#fecaca;border-radius:12px;padding:12px 16px;margin-bottom:14px;font-weight:600}
+#guided.locked .locked-banner{display:block}
+#guided.locked .gbody{opacity:.35;pointer-events:none;filter:grayscale(.6)}
+.gsection{margin-top:22px}
+.gsection h3{margin:0 0 10px;font-size:1.05rem;color:var(--accent);letter-spacing:.3px;text-transform:uppercase;font-size:.82rem}
+.field{display:flex;gap:18px;align-items:center;justify-content:space-between;padding:14px 16px;border:1px solid var(--line);border-radius:14px;margin-bottom:10px;background:rgba(255,255,255,.02);transition:border-color .2s,background .2s}
+.field:hover{border-color:var(--line2);background:rgba(255,255,255,.035)}
+.finfo{min-width:0;flex:1}
+.flabel{font-weight:700}
+.fdesc{color:var(--muted);font-size:.88rem;margin-top:2px}
+.fkey{display:inline-block;margin-top:6px;font-size:.75rem;color:#7d8aa6;background:rgba(255,255,255,.04)}
+.fctl{flex:none;display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end;max-width:55%}
+.switch{position:relative;width:58px;height:32px;border-radius:999px;border:1px solid var(--line2);background:#243049;cursor:pointer;padding:0;transition:background .2s,border-color .2s;flex:none}
+.switch::after{content:"";position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:50%;background:#cbd5e1;transition:transform .2s,background .2s}
+.switch[aria-checked="true"]{background:var(--accent-d);border-color:var(--accent)}
+.switch[aria-checked="true"]::after{transform:translateX(26px);background:#fff}
+.switch:focus-visible,.seg button:focus-visible,.btn:focus-visible{outline:3px solid rgba(96,165,250,.6);outline-offset:2px}
+.swlabel{font-size:.82rem;font-weight:700;color:var(--muted);min-width:64px;text-align:right}
+.swlabel.on{color:var(--accent)}
+.seg{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.seg button{border:1px solid var(--line2);background:#0f1729;color:var(--text);border-radius:10px;padding:9px 14px;cursor:pointer;font:inherit;font-weight:600;font-size:.92rem;transition:all .15s}
+.seg button:hover{border-color:var(--accent2)}
+.seg button.sel{background:linear-gradient(135deg,var(--accent),#22d3ee);color:#04231a;border-color:transparent;box-shadow:0 6px 18px rgba(52,211,153,.25)}
+.inp{width:230px;max-width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--line2);background:#0b1220;color:var(--text);font:inherit;outline:none}
+.inp.mono{font-family:var(--mono)}
+.inp:focus{border-color:var(--accent)}
+.inp.invalid{border-color:var(--danger);box-shadow:0 0 0 3px rgba(248,113,113,.15)}
+.hint{font-size:.78rem;color:var(--danger);width:100%;text-align:right}
+details.more{margin-top:24px;border:1px solid var(--line);border-radius:14px;padding:6px 16px;background:rgba(255,255,255,.015)}
+details.more>summary{cursor:pointer;padding:10px 0;font-weight:700;color:var(--muted)}
+.empty{color:var(--muted);font-size:.92rem;padding:8px 2px}
+
+/* ---------- salvar ---------- */
+.optbox{display:flex;gap:14px;align-items:flex-start;padding:16px 18px;border:1px solid var(--line2);border-radius:14px;background:var(--panel2);cursor:pointer;transition:border-color .2s}
+.optbox:hover{border-color:var(--accent)}
+.optbox input[type=checkbox]{width:22px;height:22px;margin-top:2px;accent-color:var(--accent);flex:none;cursor:pointer}
+.optbox b{display:block}
+.optbox span{color:var(--muted);font-size:.9rem}
+.suboptions{margin:12px 0 0 36px;display:grid;gap:8px}
+.suboptions label{display:flex;gap:10px;align-items:flex-start;cursor:pointer;font-size:.93rem;padding:10px 12px;border:1px solid var(--line);border-radius:10px}
+.suboptions input{accent-color:var(--accent);margin-top:3px}
+.suboptions small{display:block;color:var(--muted)}
+.savebar{margin-top:22px;text-align:center}
+.warnline{color:var(--warn);font-size:.88rem;margin-top:12px}
+.tip{margin-top:16px;border:1px solid var(--line);border-radius:12px;padding:6px 16px;background:rgba(255,255,255,.02)}
+.tip summary{cursor:pointer;padding:8px 0;font-weight:600;color:var(--muted)}
+.tip p,.tip li{color:var(--muted);font-size:.9rem}
+
+@media (max-width:720px){
+  .field{flex-direction:column;align-items:stretch}
+  .fctl{max-width:none;justify-content:flex-start}
+  .seg{justify-content:flex-start}
+  .hint{text-align:left}
+  .toplinks a{margin-left:12px}
+  .panel{padding:18px}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none !important;transition:none !important}html{scroll-behavior:auto}}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="wrap">
+    <a class="brand" href="#" id="brandLink"><span class="logo">B</span> Bedrock .dat Editor</a>
+    <nav class="toplinks"><a href="#" id="navHome">Início</a><a href="#editor" id="navEditor">Abrir editor</a></nav>
+  </div>
+</header>
+
+<!-- ======================= TELA INICIAL ======================= -->
+<main id="landing">
+  <section class="hero">
+    <div class="cubes" aria-hidden="true"><div class="cube c1"></div><div class="cube c2"></div><div class="cube c3"></div></div>
+    <div class="wrap">
+      <span class="pill">Minecraft Bedrock Edition • Open-source</span>
+      <h1>Edite o <span class="grad">level.dat</span><br>do seu mundo, direto no navegador</h1>
+      <p class="lead">Mude o modo de jogo, a dificuldade, as gamerules e muito mais com botões simples, ou mexa no código completo do arquivo. Sem instalar nada.</p>
+      <a class="btn btn-primary btn-big" href="#editor">Abrir o editor →</a>
+      <div class="badges">
+        <span class="badge">🔒 Seu arquivo nunca sai do seu computador</span>
+        <span class="badge">⚡ Sem servidor: tudo roda no navegador</span>
+        <span class="badge">🆓 Grátis</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="wrap">
+      <h2>O que este site faz</h2>
+      <p class="sub">O <code>level.dat</code> guarda as configurações do mundo, mas é um arquivo binário que editor de texto nenhum consegue abrir. Este site resolve isso:</p>
+      <div class="grid g3">
+        <div class="card"><div class="ico">🔓</div><h3>Decodifica</h3><p>Lê o formato NBT do Bedrock (com o cabeçalho de 8 bytes) e mostra tudo como um JSON legível.</p></div>
+        <div class="card"><div class="ico">🎛️</div><h3>Edita do jeito fácil</h3><p>Um painel guiado com interruptores e opções clicáveis para as configurações mais usadas, sem decorar números.</p></div>
+        <div class="card"><div class="ico">💾</div><h3>Gera o arquivo de volta</h3><p>Converte o JSON editado para um <code>level.dat</code> válido, preservando cada tipo de dado (byte, int, long, float…).</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="wrap">
+      <h2>Como funciona</h2>
+      <p class="sub">Quatro passos, menos de um minuto.</p>
+      <div class="grid g4">
+        <div class="card"><div class="step-n">1</div><h3>Escolha o arquivo</h3><p>Selecione ou arraste o <code>level.dat</code> do seu mundo.</p></div>
+        <div class="card"><div class="step-n">2</div><h3>Decodifique</h3><p>O conteúdo aparece em JSON, pronto para editar.</p></div>
+        <div class="card"><div class="step-n">3</div><h3>Edite</h3><p>Use o painel guiado ou altere o JSON diretamente. Os dois ficam sincronizados.</p></div>
+        <div class="card"><div class="step-n">4</div><h3>Salve e baixe</h3><p>Baixe o novo <code>level.dat</code> (e, se quiser, o <code>level.dat_old</code>) e coloque na pasta do mundo.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="wrap">
+      <h2>O que você pode editar</h2>
+      <p class="sub">Tudo que estiver no arquivo pode ser alterado no JSON. O painel guiado cobre os campos mais populares:</p>
+      <div class="grid g3">
+        <div class="card"><div class="ico">🎮</div><h3>Modo de jogo e dificuldade</h3><p>Sobrevivência, Criativo, Aventura; Pacífico até Difícil.</p></div>
+        <div class="card"><div class="ico">📜</div><h3>Gamerules</h3><p><code>keepinventory</code>, <code>mobgriefing</code>, <code>pvp</code>, ciclo de dia/noite, <code>randomtickspeed</code> e dezenas de outras.</p></div>
+        <div class="card"><div class="ico">🌍</div><h3>Mundo</h3><p>Nome, seed, ponto de spawn, clima, trapaças ativadas e outras opções.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="wrap">
+      <div class="callout"><b>⚠️ Faça backup antes!</b> Copie o <code>level.dat</code> original para outro lugar antes de substituir. Se algo der errado, basta restaurar a cópia. Alterar certos campos pode impedir o mundo de abrir.</div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="wrap">
+      <h2>Perguntas rápidas</h2>
+      <details class="faq"><summary>Meu arquivo é enviado para algum servidor?</summary><p>Não. Toda a leitura e a geração do arquivo acontecem no seu navegador, com JavaScript. Nada é enviado para a internet.</p></details>
+      <details class="faq"><summary>Onde fica o level.dat?</summary><p>Dentro da pasta do mundo, em <code>minecraftWorlds</code>. No Windows (Bedrock/UWP): <code>%LocalAppData%\Packages\Microsoft.MinecraftUWP_8wekyb3d8bbwe\LocalState\games\com.mojang\minecraftWorlds\</code>. No Android: <code>Android/data/com.mojang.minecraftpe/files/games/com.mojang/minecraftWorlds/</code> (versões novas do Android podem exigir um gerenciador de arquivos).</p></details>
+      <details class="faq"><summary>E o level.dat_old?</summary><p>É uma cópia do arquivo anterior que o jogo mantém ao lado do <code>level.dat</code>. Ele tem o mesmo formato, então o editor também abre esse arquivo. Na hora de salvar você pode baixar um <code>level.dat_old</code> junto.</p></details>
+      <details class="faq"><summary>Funciona com Minecraft Java?</summary><p>Não. O Java usa outro formato (NBT compactado e em outra ordem de bytes). Este editor é só para o Bedrock.</p></details>
+    </div>
+  </section>
+
+  <div class="wrap">
+    <div class="cta-band">
+      <h2>Pronto para editar o seu mundo?</h2>
+      <a class="btn btn-primary btn-big" href="#editor">Abrir o editor →</a>
+    </div>
+  </div>
+</main>
+
+<!-- ======================= EDITOR ======================= -->
+<main id="appView" class="hidden">
+  <div class="wrap">
+    <div class="app-head">
+      <h1>Editor de <span class="grad">level.dat</span></h1>
+      <p>Tudo roda no seu navegador. Nenhum arquivo é enviado para a internet.</p>
+    </div>
+
+    <!-- 1 -->
+    <section class="panel">
+      <h2 class="panel-title"><span class="num">1</span> Escolha o seu level.dat</h2>
+      <p class="panel-desc">Selecione o arquivo do mundo (também funciona com o <code>level.dat_old</code>).</p>
+      <label class="drop" id="drop">
+        <input type="file" id="fileInput">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V4m0 0 4 4m-4-4L8 8"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg>
+        <div class="t1" id="dropTitle">Arraste o level.dat aqui</div>
+        <div class="t2" id="dropSub">ou clique para escolher o arquivo no seu computador</div>
+        <span class="fake" id="dropBtn">📂 Selecionar level.dat</span>
+      </label>
+      <div class="actions"><button class="btn btn-primary btn-big" id="decodeBtn" disabled>🔓 Decodificar level.dat</button></div>
+      <div class="center"><div class="status" id="decodeStatus" role="status"></div><div class="chips" id="chips"></div></div>
+      <details class="tip"><summary>Onde encontro o level.dat?</summary>
+        <p><b>Windows:</b> <code>%LocalAppData%\Packages\Microsoft.MinecraftUWP_8wekyb3d8bbwe\LocalState\games\com.mojang\minecraftWorlds\</code> e abra a pasta do seu mundo.<br>
+        <b>Android:</b> <code>Android/data/com.mojang.minecraftpe/files/games/com.mojang/minecraftWorlds/</code></p>
+      </details>
+    </section>
+
+    <div id="editorArea" class="hidden">
+      <!-- 2 -->
+      <section class="panel editor-panel">
+        <h2 class="panel-title"><span class="num">2</span> Código JSON (edição completa)</h2>
+        <p class="panel-desc">Cada campo é <code>{"type": "...", "value": ...}</code>. Edite só o <code>value</code> e mantenha o <code>type</code>. Flags verdadeiro/falso são <code>byte</code>: <code>1</code> = ligado, <code>0</code> = desligado.</p>
+        <div class="toolbar">
+          <button class="btn btn-sm" id="copyBtn">📋 Copiar JSON</button>
+          <button class="btn btn-sm" id="formatBtn">✨ Formatar</button>
+          <button class="btn btn-sm" id="resetBtn">↩️ Restaurar original</button>
+        </div>
+        <textarea class="json" id="jsonEditor" spellcheck="false" autocomplete="off" autocapitalize="off"></textarea>
+        <div class="vstatus ok" id="vstatus" role="status"></div>
+        <div class="legend">Tipos: <code>byte</code> -128..127 · <code>short</code> · <code>int</code> · <code>long</code> (64 bits) · <code>float</code>/<code>double</code> (decimais) · <code>string</code> (texto)</div>
+      </section>
+
+      <!-- 3 -->
+      <section class="panel" id="guided">
+        <h2 class="panel-title"><span class="num">3</span> Editor guiado</h2>
+        <p class="panel-desc">A mesma edição, sem precisar mexer no código. Qualquer mudança aqui atualiza o JSON acima, e vice-versa.</p>
+        <div class="locked-banner">O JSON acima tem um erro. Corrija-o para voltar a usar o editor guiado.</div>
+        <div class="gbody">
+          <input class="search" id="search" type="search" placeholder="🔎 Buscar opção (ex.: inventário, pvp, seed)" autocomplete="off">
+          <div id="guidedFields"></div>
+        </div>
+      </section>
+
+      <!-- 4 -->
+      <section class="panel">
+        <h2 class="panel-title"><span class="num">4</span> Salvar e baixar</h2>
+        <p class="panel-desc">Gera um <code>level.dat</code> válido a partir do que está no editor.</p>
+        <label class="optbox">
+          <input type="checkbox" id="oldCheck">
+          <div><b>Baixar também o level.dat_old</b><span>Acompanha um arquivo <code>level.dat_old</code> junto com o <code>level.dat</code>.</span></div>
+        </label>
+        <div class="suboptions hidden" id="oldOptions">
+          <label><input type="radio" name="oldMode" value="edited" checked><div>Cópia do level.dat editado<small>Os dois arquivos ficam idênticos.</small></div></label>
+          <label><input type="radio" name="oldMode" value="original"><div>Meu arquivo original (backup)<small>O arquivo exatamente como você enviou, sem as suas edições.</small></div></label>
+        </div>
+        <div class="savebar">
+          <button class="btn btn-primary btn-big" id="saveBtn">💾 Salvar e baixar</button>
+          <div class="status" id="saveStatus" role="status"></div>
+          <div class="warnline">Ao baixar dois arquivos, o navegador pode pedir permissão para “baixar vários arquivos”. Aceite.</div>
+        </div>
+      </section>
+    </div>
+  </div>
+</main>
+
+<footer><div class="wrap">Projeto open-source, não afiliado à Mojang Studios nem à Microsoft. Minecraft é marca registrada da Mojang AB. Use por sua conta e risco e sempre com backup dos seus mundos.</div></footer>
+
+<script>
+/*
+ * Conversor NBT (Bedrock, Little-Endian) <-> JSON — 100% no navegador.
+ * Port do nbt_codec.py. Os tipos do NBT são preservados no JSON:
+ *   { "type": "int", "value": 1 }
+ * Internamente o documento é uma árvore de Map/Array/BigInt/Number/string
+ * (a mesma forma do JSON). Inteiros são SEMPRE BigInt (não perdem precisão).
+ */
+const NBT = (function () {
+  'use strict';
+
+  const TAG = { END: 0, BYTE: 1, SHORT: 2, INT: 3, LONG: 4, FLOAT: 5, DOUBLE: 6,
+                BYTE_ARRAY: 7, STRING: 8, LIST: 9, COMPOUND: 10, INT_ARRAY: 11, LONG_ARRAY: 12 };
+  const ID2NAME = ['end', 'byte', 'short', 'int', 'long', 'float', 'double',
+                   'byte_array', 'string', 'list', 'compound', 'int_array', 'long_array'];
+  const NAME2ID = {};
+  ID2NAME.forEach((n, i) => { NAME2ID[n] = i; });
+
+  const INT_INFO = {
+    1: { min: -128n, max: 127n },
+    2: { min: -32768n, max: 32767n },
+    3: { min: -2147483648n, max: 2147483647n },
+    4: { min: -9223372036854775808n, max: 9223372036854775807n },
+  };
+  const MAX_DEPTH = 256;
+  const MAX_ARRAY = 10000000;
+
+  class NBTError extends Error {}
+
+  const utf8Dec = new TextDecoder('utf-8', { fatal: true });
+  const utf8Enc = new TextEncoder();
+
+  // ------------------------------------------------------------------ LEITURA
+  class Reader {
+    constructor(u8) {
+      this.u8 = u8;
+      this.dv = new DataView(u8.buffer, u8.byteOffset, u8.byteLength);
+      this.pos = 0;
+    }
+    need(n) {
+      if (n < 0 || this.pos + n > this.u8.length)
+        throw new NBTError('Fim inesperado do arquivo: o NBT está truncado ou corrompido.');
+    }
+    byte() { this.need(1); return this.u8[this.pos++]; }
+    string() {
+      this.need(2);
+      const n = this.dv.getUint16(this.pos, true); this.pos += 2;
+      this.need(n);
+      const bytes = this.u8.subarray(this.pos, this.pos + n); this.pos += n;
+      try { return utf8Dec.decode(bytes); }
+      catch (e) { throw new NBTError('Um texto do arquivo não é UTF-8 válido; não é seguro editar este arquivo.'); }
+    }
+    arrayLen() {
+      this.need(4);
+      const n = this.dv.getInt32(this.pos, true); this.pos += 4;
+      if (n < 0 || n > MAX_ARRAY) throw new NBTError('Tamanho de lista/array inválido.');
+      return n;
+    }
+    payload(tid, depth) {
+      if (depth > MAX_DEPTH) throw new NBTError('Estrutura NBT aninhada demais.');
+      const dv = this.dv;
+      switch (tid) {
+        case TAG.BYTE:   this.need(1); { const v = dv.getInt8(this.pos);  this.pos += 1; return BigInt(v); }
+        case TAG.SHORT:  this.need(2); { const v = dv.getInt16(this.pos, true); this.pos += 2; return BigInt(v); }
+        case TAG.INT:    this.need(4); { const v = dv.getInt32(this.pos, true); this.pos += 4; return BigInt(v); }
+        case TAG.LONG:   this.need(8); { const v = dv.getBigInt64(this.pos, true); this.pos += 8; return v; }
+        case TAG.FLOAT:  this.need(4); { const v = dv.getFloat32(this.pos, true); this.pos += 4; return safeNum(v); }
+        case TAG.DOUBLE: this.need(8); { const v = dv.getFloat64(this.pos, true); this.pos += 8; return safeNum(v); }
+        case TAG.STRING: return this.string();
+        case TAG.BYTE_ARRAY: case TAG.INT_ARRAY: case TAG.LONG_ARRAY: {
+          const n = this.arrayLen();
+          const base = tid === TAG.BYTE_ARRAY ? TAG.BYTE : tid === TAG.INT_ARRAY ? TAG.INT : TAG.LONG;
+          const out = [];
+          for (let i = 0; i < n; i++) out.push(this.payload(base, depth + 1));
+          return out;
+        }
+        case TAG.LIST: {
+          const itemTid = this.byte();
+          const n = this.arrayLen();
+          if (itemTid > 12 || (itemTid === TAG.END && n > 0))
+            throw new NBTError('Tipo de item de lista inválido: ' + itemTid);
+          const items = [];
+          for (let i = 0; i < n; i++) items.push(this.payload(itemTid, depth + 1));
+          return new Map([['item_type', ID2NAME[itemTid]], ['value', items]]);
+        }
+        case TAG.COMPOUND: {
+          const kids = new Map();
+          for (;;) {
+            const t = this.byte();
+            if (t === TAG.END) return kids;
+            if (t > 12) throw new NBTError('Tag desconhecida (id ' + t + ').');
+            const name = this.string();
+            kids.set(name, wrap(t, this.payload(t, depth + 1)));
+          }
+        }
+      }
+      throw new NBTError('Tag desconhecida (id ' + tid + ').');
+    }
+  }
+
+  function safeNum(x) {
+    if (Number.isFinite(x)) return x;
+    return Number.isNaN(x) ? 'NaN' : (x > 0 ? 'Infinity' : '-Infinity');
+  }
+  function wrap(tid, content) {
+    if (tid === TAG.LIST)
+      return new Map([['type', 'list'], ['item_type', content.get('item_type')], ['value', content.get('value')]]);
+    return new Map([['type', ID2NAME[tid]], ['value', content]]);
+  }
+
+  /** ArrayBuffer/Uint8Array de um .dat do Bedrock -> documento (Map) */
+  function datToDocument(input) {
+    const u8 = input instanceof Uint8Array ? input : new Uint8Array(input);
+    if (u8.length < 8) throw new NBTError('Arquivo pequeno demais para ter o cabeçalho de 8 bytes do Bedrock.');
+    const dv = new DataView(u8.buffer, u8.byteOffset, u8.byteLength);
+    const version = dv.getUint32(0, true);
+    const size = dv.getUint32(4, true);
+    if (u8.length < 8 + size)
+      throw new NBTError('Arquivo incompleto, corrompido ou que não é um level.dat do Bedrock (o cabeçalho diz ' + size + ' bytes de NBT, mas só há ' + (u8.length - 8) + ').');
+    const r = new Reader(u8.subarray(8, 8 + size));
+    if (r.byte() !== TAG.COMPOUND)
+      throw new NBTError('Este arquivo não parece um NBT do Bedrock (a raiz não é um compound). Você enviou o arquivo certo (ex.: level.dat)?');
+    const rootName = r.string();
+    const content = r.payload(TAG.COMPOUND, 0);
+    return new Map([['storage_version', BigInt(version)], ['root_name', rootName], ['root', wrap(TAG.COMPOUND, content)]]);
+  }
+
+  // ------------------------------------------------------------------ ESCRITA
+  class Writer {
+    constructor() { this.buf = new Uint8Array(4096); this.dv = new DataView(this.buf.buffer); this.len = 0; }
+    ensure(n) {
+      if (this.len + n <= this.buf.length) return;
+      let size = this.buf.length * 2;
+      while (size < this.len + n) size *= 2;
+      const nb = new Uint8Array(size); nb.set(this.buf.subarray(0, this.len));
+      this.buf = nb; this.dv = new DataView(nb.buffer);
+    }
+    u8(v) { this.ensure(1); this.buf[this.len++] = v; }
+    u16(v) { this.ensure(2); this.dv.setUint16(this.len, v, true); this.len += 2; }
+    i32(v) { this.ensure(4); this.dv.setInt32(this.len, v, true); this.len += 4; }
+    bytes(arr) { this.ensure(arr.length); this.buf.set(arr, this.len); this.len += arr.length; }
+    int(tid, big) {
+      switch (tid) {
+        case TAG.BYTE:  this.ensure(1); this.dv.setInt8(this.len, Number(big)); this.len += 1; break;
+        case TAG.SHORT: this.ensure(2); this.dv.setInt16(this.len, Number(big), true); this.len += 2; break;
+        case TAG.INT:   this.ensure(4); this.dv.setInt32(this.len, Number(big), true); this.len += 4; break;
+        case TAG.LONG:  this.ensure(8); this.dv.setBigInt64(this.len, big, true); this.len += 8; break;
+      }
+    }
+    f32(x) { this.ensure(4); this.dv.setFloat32(this.len, x, true); this.len += 4; }
+    f64(x) { this.ensure(8); this.dv.setFloat64(this.len, x, true); this.len += 8; }
+    result() { return this.buf.slice(0, this.len); }
+  }
+
+  function writeString(w, s, path) {
+    if (typeof s !== 'string') throw new NBTError(path + ': esperado texto (string).');
+    const b = utf8Enc.encode(s);
+    if (b.length > 0xFFFF) throw new NBTError(path + ': texto longo demais (máx. 65535 bytes).');
+    w.u16(b.length); w.bytes(b);
+  }
+  function toInt(v, tid, path) {
+    if (typeof v === 'boolean') v = v ? 1n : 0n;
+    else if (typeof v === 'number' && Number.isInteger(v)) v = BigInt(v);
+    if (typeof v !== 'bigint')
+      throw new NBTError(path + ': esperado número inteiro, recebido ' + describe(v) + '.');
+    const { min, max } = INT_INFO[tid];
+    if (v < min || v > max)
+      throw new NBTError(path + ': ' + v + ' fora do intervalo do tipo ' + ID2NAME[tid] + ' (' + min + ' a ' + max + ').');
+    return v;
+  }
+  function toReal(v, path) {
+    if (v === 'NaN') return NaN;
+    if (v === 'Infinity') return Infinity;
+    if (v === '-Infinity') return -Infinity;
+    if (typeof v === 'bigint') return Number(v);
+    if (typeof v !== 'number') throw new NBTError(path + ': esperado número, recebido ' + describe(v) + '.');
+    return v;
+  }
+  function describe(v) {
+    if (v instanceof Map) return 'um objeto';
+    if (Array.isArray(v)) return 'uma lista';
+    if (typeof v === 'string') return JSON.stringify(v);
+    return String(v);
+  }
+
+  function writePayload(w, tid, v, path, depth) {
+    if (depth > MAX_DEPTH) throw new NBTError('Estrutura aninhada demais.');
+    switch (tid) {
+      case TAG.BYTE: case TAG.SHORT: case TAG.INT: case TAG.LONG:
+        w.int(tid, toInt(v, tid, path)); return;
+      case TAG.FLOAT: {
+        const x = toReal(v, path);
+        if (Number.isFinite(x) && !Number.isFinite(Math.fround(x)))
+          throw new NBTError(path + ': ' + x + ' grande demais para float.');
+        w.f32(x); return;
+      }
+      case TAG.DOUBLE: w.f64(toReal(v, path)); return;
+      case TAG.STRING: writeString(w, v, path); return;
+      case TAG.BYTE_ARRAY: case TAG.INT_ARRAY: case TAG.LONG_ARRAY: {
+        if (!Array.isArray(v)) throw new NBTError(path + ': esperado uma lista de números.');
+        const base = tid === TAG.BYTE_ARRAY ? TAG.BYTE : tid === TAG.INT_ARRAY ? TAG.INT : TAG.LONG;
+        w.i32(v.length);
+        v.forEach((x, i) => w.int(base, toInt(x, base, path + '[' + i + ']')));
+        return;
+      }
+      case TAG.LIST: writeList(w, v, path, depth); return;
+      case TAG.COMPOUND: {
+        if (!(v instanceof Map)) throw new NBTError(path + ': esperado objeto {...} no compound.');
+        for (const [name, tag] of v) {
+          const p = path + '.' + name;
+          const [ctid, cval] = unwrap(tag, p);
+          w.u8(ctid); writeString(w, name, p);
+          writePayload(w, ctid, cval, p, depth + 1);
+        }
+        w.u8(TAG.END); return;
+      }
+    }
+    throw new NBTError(path + ': tipo não suportado.');
+  }
+  function writeList(w, v, path, depth) {
+    const itemName = v.get('item_type');
+    const itemTid = NAME2ID[itemName];
+    const items = v.get('value');
+    if (itemTid === undefined) throw new NBTError(path + ': item_type desconhecido: ' + describe(itemName) + '.');
+    if (!Array.isArray(items)) throw new NBTError(path + ": 'value' da lista deve ser uma lista [...].");
+    if (itemTid === TAG.END && items.length) throw new NBTError(path + ": lista com itens não pode ter item_type 'end'.");
+    w.u8(itemTid); w.i32(items.length);
+    items.forEach((it, i) => writePayload(w, itemTid, it, path + '[' + i + ']', depth + 1));
+  }
+  function unwrap(tag, path) {
+    if (!(tag instanceof Map) || !tag.has('type') || !tag.has('value'))
+      throw new NBTError(path + ': cada campo deve ser {"type": "...", "value": ...}.');
+    const tname = tag.get('type');
+    const tid = NAME2ID[tname];
+    if (tid === undefined || tid === TAG.END)
+      throw new NBTError(path + ': tipo desconhecido ' + describe(tname) + '. Válidos: ' + ID2NAME.slice(1).join(', ') + '.');
+    if (tid === TAG.LIST) {
+      if (!tag.has('item_type')) throw new NBTError(path + ': lista precisa do campo "item_type".');
+      return [tid, new Map([['item_type', tag.get('item_type')], ['value', tag.get('value')]])];
+    }
+    return [tid, tag.get('value')];
+  }
+
+  /** documento (Map) -> Uint8Array com o .dat do Bedrock */
+  function documentToDat(doc) {
+    if (!(doc instanceof Map)) throw new NBTError('O JSON raiz precisa ser um objeto {...}.');
+    for (const f of ['storage_version', 'root_name', 'root'])
+      if (!doc.has(f)) throw new NBTError('Falta o campo "' + f + '" no topo do JSON.');
+    let ver = doc.get('storage_version');
+    if (typeof ver === 'number' && Number.isInteger(ver)) ver = BigInt(ver);
+    if (typeof ver !== 'bigint' || ver < 0n || ver > 4294967295n)
+      throw new NBTError('"storage_version" deve ser um inteiro entre 0 e 4294967295.');
+    const [tid, val] = unwrap(doc.get('root'), 'root');
+    if (tid !== TAG.COMPOUND) throw new NBTError('"root" deve ser do tipo "compound".');
+    const body = new Writer();
+    body.u8(TAG.COMPOUND);
+    writeString(body, doc.get('root_name'), 'root_name');
+    writePayload(body, TAG.COMPOUND, val, 'root', 0);
+    const nbt = body.result();
+    const out = new Uint8Array(8 + nbt.length);
+    const dv = new DataView(out.buffer);
+    dv.setUint32(0, Number(ver), true);
+    dv.setUint32(4, nbt.length, true);
+    out.set(nbt, 8);
+    return out;
+  }
+
+  // ------------------------------------------------------------------ JSON (texto)
+  /** Parser de JSON que preserva inteiros de 64 bits (BigInt) e a ordem das chaves (Map). */
+  function parseJSON(text) {
+    let i = 0;
+    const n = text.length;
+    const fail = (msg, pos) => {
+      pos = pos === undefined ? i : pos;
+      let line = 1, col = 1;
+      for (let k = 0; k < pos && k < n; k++) { if (text[k] === '\n') { line++; col = 1; } else col++; }
+      throw new NBTError('JSON inválido (linha ' + line + ', coluna ' + col + '): ' + msg);
+    };
+    const ws = () => { while (i < n && (text[i] === ' ' || text[i] === '\n' || text[i] === '\r' || text[i] === '\t')) i++; };
+    const numRe = /-?(?:0|[1-9]\d*)(\.\d+)?([eE][+-]?\d+)?/y;
+    const ESC = { '"': '"', '\\': '\\', '/': '/', b: '\b', f: '\f', n: '\n', r: '\r', t: '\t' };
+
+    function str() {
+      i++; let out = '';
+      for (;;) {
+        if (i >= n) fail('texto sem aspas de fechamento');
+        const c = text[i];
+        if (c === '"') { i++; return out; }
+        if (c === '\\') {
+          const e = text[i + 1];
+          if (e === 'u') {
+            const hex = text.substr(i + 2, 4);
+            if (!/^[0-9a-fA-F]{4}$/.test(hex)) fail('sequência \\u inválida');
+            out += String.fromCharCode(parseInt(hex, 16)); i += 6;
+          } else if (e in ESC) { out += ESC[e]; i += 2; }
+          else fail('sequência de escape inválida');
+        } else if (c.charCodeAt(0) < 0x20) fail('quebra de linha ou caractere de controle dentro de um texto');
+        else { out += c; i++; }
+      }
+    }
+    function value(depth) {
+      if (depth > MAX_DEPTH) fail('estrutura aninhada demais');
+      ws();
+      if (i >= n) fail('o JSON terminou antes do esperado');
+      const c = text[i];
+      if (c === '{') {
+        i++; const m = new Map(); ws();
+        if (text[i] === '}') { i++; return m; }
+        for (;;) {
+          ws();
+          if (text[i] !== '"') fail('esperado o nome do campo entre aspas');
+          const k = str(); ws();
+          if (text[i] !== ':') fail('esperado ":" depois do nome do campo');
+          i++; m.set(k, value(depth + 1)); ws();
+          if (text[i] === ',') { i++; continue; }
+          if (text[i] === '}') { i++; return m; }
+          fail('esperado "," ou "}"');
+        }
+      }
+      if (c === '[') {
+        i++; const a = []; ws();
+        if (text[i] === ']') { i++; return a; }
+        for (;;) {
+          a.push(value(depth + 1)); ws();
+          if (text[i] === ',') { i++; continue; }
+          if (text[i] === ']') { i++; return a; }
+          fail('esperado "," ou "]"');
+        }
+      }
+      if (c === '"') return str();
+      if (text.startsWith('true', i)) { i += 4; return true; }
+      if (text.startsWith('false', i)) { i += 5; return false; }
+      if (text.startsWith('null', i)) { i += 4; return null; }
+      if (c === '-' || (c >= '0' && c <= '9')) {
+        numRe.lastIndex = i;
+        const m = numRe.exec(text);
+        if (!m) fail('número inválido');
+        i += m[0].length;
+        return (m[1] || m[2]) ? Number(m[0]) : BigInt(m[0]);
+      }
+      fail('caractere inesperado "' + c + '"');
+    }
+    ws(); if (i >= n) fail('o texto está vazio');
+    const v = value(0); ws();
+    if (i < n) fail('há texto sobrando depois do fim do JSON');
+    return v;
+  }
+
+  function fmtFloat(v, kind) {
+    if (Object.is(v, -0)) return '-0.0';
+    let s;
+    if (kind === 'float') {
+      s = String(v);
+      for (let p = 1; p <= 9; p++) {          // menor representação que volta ao mesmo float32
+        const t = v.toPrecision(p);
+        if (Math.fround(Number(t)) === v) { s = String(Number(t)); break; }
+      }
+    } else s = String(v);
+    return /[.eE]/.test(s) ? s : s + '.0';
+  }
+  function pad(l) { return '  '.repeat(l); }
+
+  function ser(v, lvl, fk) {
+    if (v instanceof Map) {
+      if (v.size === 0) return '{}';
+      const t = v.get('type'), it = v.get('item_type');
+      let vk = null;
+      if (t === 'float' || t === 'double') vk = t;
+      else if (it === 'float' || it === 'double') vk = it;
+      const parts = [];
+      for (const [k, val] of v) parts.push(JSON.stringify(k) + ': ' + ser(val, lvl + 1, k === 'value' ? vk : null));
+      return '{\n' + pad(lvl + 1) + parts.join(',\n' + pad(lvl + 1)) + '\n' + pad(lvl) + '}';
+    }
+    if (Array.isArray(v)) {
+      if (v.length === 0) return '[]';
+      const scalars = v.every(x => !(x instanceof Map) && !Array.isArray(x));
+      if (scalars && v.length <= 16) return '[' + v.map(x => ser(x, lvl + 1, fk)).join(', ') + ']';
+      return '[\n' + pad(lvl + 1) + v.map(x => ser(x, lvl + 1, fk)).join(',\n' + pad(lvl + 1)) + '\n' + pad(lvl) + ']';
+    }
+    if (typeof v === 'bigint') return v.toString();
+    if (typeof v === 'number') return fmtFloat(v, fk);
+    if (typeof v === 'string') return JSON.stringify(v);
+    if (typeof v === 'boolean') return v ? 'true' : 'false';
+    return 'null';
+  }
+
+  const documentToText = (doc) => ser(doc, 0, null);
+  /** texto JSON -> Uint8Array (.dat). Lança NBTError com mensagem amigável. */
+  const textToDat = (text) => documentToDat(parseJSON(text));
+  /** texto JSON -> documento (valida também se dá para gerar o .dat) */
+  function textToDocument(text) {
+    const doc = parseJSON(text);
+    documentToDat(doc);
+    return doc;
+  }
+
+  return { TAG, ID2NAME, NAME2ID, INT_INFO, NBTError,
+           datToDocument, documentToDat, documentToText, textToDat, textToDocument, parseJSON, fmtFloat };
+})();
+
+if (typeof module !== 'undefined' && module.exports) module.exports = NBT;
+
+</script>
+
+<script>
+(function () {
+'use strict';
+
+/* ================= utilidades ================= */
+const $ = (id) => document.getElementById(id);
+function h(tag, attrs, ...kids) {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs || {})) {
+    if (k === 'class') e.className = v;
+    else if (k.startsWith('on')) e.addEventListener(k.slice(2), v);
+    else if (v === true) e.setAttribute(k, '');
+    else if (v !== false && v != null) e.setAttribute(k, v);
+  }
+  for (const c of kids.flat()) {
+    if (c == null || c === false) continue;
+    e.append(c.nodeType ? c : document.createTextNode(String(c)));
+  }
+  return e;
+}
+const fmtBytes = (n) => n < 1024 ? n + ' B' : (n / 1024).toFixed(1) + ' KB';
+
+/* ================= navegação ================= */
+function route() {
+  const editor = location.hash === '#editor';
+  $('landing').classList.toggle('hidden', editor);
+  $('appView').classList.toggle('hidden', !editor);
+  window.scrollTo(0, 0);
+}
+window.addEventListener('hashchange', route);
+$('navHome').addEventListener('click', (e) => { e.preventDefault(); history.pushState('', '', location.pathname + location.search); route(); });
+$('brandLink').addEventListener('click', (e) => { e.preventDefault(); history.pushState('', '', location.pathname + location.search); route(); });
+route();
+
+/* ================= estado ================= */
+let selectedFile = null;
+let doc = null;               // documento atual (Map)
+let originalBytes = null;     // bytes do arquivo enviado
+let originalText = '';        // JSON original
+
+const dropEl = $('drop'), fileInput = $('fileInput'), ta = $('jsonEditor');
+
+/* ================= passo 1: escolher e decodificar ================= */
+function setFile(f) {
+  selectedFile = f;
+  dropEl.classList.add('has');
+  $('dropTitle').textContent = '✅ ' + f.name;
+  $('dropSub').textContent = fmtBytes(f.size) + ' • clique para trocar de arquivo';
+  $('dropBtn').textContent = '📂 Trocar arquivo';
+  $('decodeBtn').disabled = false;
+  setStatus('decodeStatus', '', '');
+}
+fileInput.addEventListener('change', () => { if (fileInput.files.length) setFile(fileInput.files[0]); });
+['dragenter', 'dragover'].forEach(ev => dropEl.addEventListener(ev, (e) => { e.preventDefault(); dropEl.classList.add('over'); }));
+['dragleave', 'drop'].forEach(ev => dropEl.addEventListener(ev, (e) => { e.preventDefault(); dropEl.classList.remove('over'); }));
+dropEl.addEventListener('drop', (e) => { if (e.dataTransfer.files.length) setFile(e.dataTransfer.files[0]); });
+
+function setStatus(id, cls, msg) { const el = $(id); el.className = 'status ' + cls; el.textContent = msg; }
+
+$('decodeBtn').addEventListener('click', async () => {
+  if (!selectedFile) return;
+  if (selectedFile.size > 20 * 1024 * 1024) { setStatus('decodeStatus', 'err', 'Arquivo grande demais para ser um level.dat (máx. 20 MB).'); return; }
+  setStatus('decodeStatus', 'wait', 'Decodificando…');
+  try {
+    const buf = await selectedFile.arrayBuffer();
+    const d = NBT.datToDocument(buf);
+    doc = d;
+    originalBytes = new Uint8Array(buf.slice(0));
+    originalText = NBT.documentToText(d);
+    ta.value = originalText;
+    showValidity(true);
+    renderGuided();
+    const nFields = d.get('root').get('value').size;
+    $('chips').replaceChildren(
+      h('span', { class: 'chip' }, 'Versão de armazenamento: ', h('b', {}, String(d.get('storage_version')))),
+      h('span', { class: 'chip' }, 'Campos na raiz: ', h('b', {}, nFields)),
+      h('span', { class: 'chip' }, 'Tamanho: ', h('b', {}, fmtBytes(selectedFile.size))));
+    setStatus('decodeStatus', 'ok', 'Arquivo decodificado com sucesso!');
+    $('editorArea').classList.remove('hidden');
+    setStatus('saveStatus', '', '');
+    $('editorArea').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  } catch (e) {
+    $('editorArea').classList.add('hidden');
+    setStatus('decodeStatus', 'err', 'Não foi possível decodificar: ' + (e instanceof NBT.NBTError ? e.message : 'erro inesperado (' + e.message + ')'));
+  }
+});
+
+/* ================= passo 2: editor JSON ================= */
+function showValidity(ok, msg) {
+  const v = $('vstatus');
+  v.className = 'vstatus ' + (ok ? 'ok' : 'err');
+  v.textContent = ok ? '✔ JSON válido — pronto para salvar' : '✖ ' + msg;
+  ta.classList.toggle('bad', !ok);
+  $('guided').classList.toggle('locked', !ok);
+}
+let debounce = null;
+function checkText() {
+  try {
+    doc = NBT.textToDocument(ta.value);
+    showValidity(true);
+    renderGuided();
+  } catch (e) {
+    showValidity(false, e instanceof NBT.NBTError ? e.message : 'Erro: ' + e.message);
+  }
+}
+ta.addEventListener('input', () => { clearTimeout(debounce); debounce = setTimeout(checkText, 250); });
+
+$('formatBtn').addEventListener('click', () => {
+  try { const d = NBT.textToDocument(ta.value); doc = d; ta.value = NBT.documentToText(d); showValidity(true); renderGuided(); }
+  catch (e) { showValidity(false, e.message); }
+});
+$('resetBtn').addEventListener('click', () => {
+  if (!confirm('Descartar todas as suas edições e voltar ao conteúdo original do arquivo?')) return;
+  ta.value = originalText; checkText();
+});
+$('copyBtn').addEventListener('click', async () => {
+  const b = $('copyBtn'), old = b.textContent;
+  try { await navigator.clipboard.writeText(ta.value); }
+  catch (e) { ta.select(); document.execCommand('copy'); ta.setSelectionRange(0, 0); }
+  b.textContent = '✔ Copiado!'; setTimeout(() => { b.textContent = old; }, 1400);
+});
+
+/* Chamado quando o editor guiado altera o documento */
+function commit() {
+  ta.value = NBT.documentToText(doc);
+  showValidity(true);
+}
+
+/* ================= passo 3: editor guiado ================= */
+const INT_TYPES = ['byte', 'short', 'int', 'long'];
+const REAL_TYPES = ['float', 'double'];
+
+const WORLD_FIELDS = [
+  { k: 'LevelName', t: 'text', label: 'Nome do mundo', desc: 'Nome que aparece na lista de mundos do jogo.' },
+  { k: 'GameType', t: 'choice', label: 'Modo de jogo', desc: 'Modo de jogo padrão do mundo.',
+    opts: [[0, 'Sobrevivência', '⛏️'], [1, 'Criativo', '🎨'], [2, 'Aventura', '🧭']] },
+  { k: 'Difficulty', t: 'choice', label: 'Dificuldade', desc: 'Dificuldade do mundo.',
+    opts: [[0, 'Pacífico', '🕊️'], [1, 'Fácil', '🙂'], [2, 'Normal', '⚔️'], [3, 'Difícil', '💀']] },
+  { k: 'RandomSeed', t: 'number', label: 'Semente (seed)', desc: 'Número usado para gerar o terreno. Mudar não altera o que você já explorou.' },
+  { k: 'Time', t: 'number', label: 'Tempo do mundo (ticks)', desc: '20 ticks = 1 segundo; 24000 ticks = 1 dia do jogo.' },
+  { k: 'SpawnX', t: 'number', label: 'Spawn X', desc: 'Coordenada X do ponto de spawn do mundo.' },
+  { k: 'SpawnY', t: 'number', label: 'Spawn Y', desc: 'Altura (Y) do ponto de spawn do mundo.' },
+  { k: 'SpawnZ', t: 'number', label: 'Spawn Z', desc: 'Coordenada Z do ponto de spawn do mundo.' },
+];
+const OPTION_FIELDS = [
+  { k: 'commandsEnabled', t: 'toggle', label: 'Trapaças (comandos) ativadas', desc: 'Permite usar comandos como /gamemode e /give.' },
+  { k: 'hasBeenLoadedInCreative', t: 'toggle', label: 'Já foi aberto com trapaças/criativo', desc: 'Se ligado, o jogo considera que o mundo já usou trapaças (conquistas desativadas).' },
+  { k: 'ForceGameType', t: 'toggle', label: 'Forçar o modo de jogo', desc: 'Força o modo de jogo do mundo para todos os jogadores.' },
+  { k: 'bonusChestEnabled', t: 'toggle', label: 'Baú de bônus', desc: 'Baú de bônus na criação do mundo.' },
+  { k: 'startWithMapEnabled', t: 'toggle', label: 'Começar com mapa', desc: 'Jogadores começam com um mapa.' },
+  { k: 'texturePacksRequired', t: 'toggle', label: 'Exigir pacotes de textura', desc: 'Jogadores precisam usar os pacotes de textura do mundo.' },
+  { k: 'MultiplayerGame', t: 'toggle', label: 'Multijogador', desc: 'Permite que outros jogadores entrem no mundo.' },
+  { k: 'LANBroadcast', t: 'toggle', label: 'Visível na rede local (LAN)', desc: 'O mundo aparece para jogadores na mesma rede.' },
+  { k: 'educationFeaturesEnabled', t: 'toggle', label: 'Recursos de educação', desc: 'Ativa os recursos do Minecraft Education.' },
+  { k: 'rainLevel', t: 'number', label: 'Intensidade da chuva', desc: 'De 0 (sem chuva) a 1 (chuva forte).' },
+  { k: 'lightningLevel', t: 'number', label: 'Intensidade de tempestade', desc: 'De 0 (sem raios) a 1 (tempestade forte).' },
+];
+const GAMERULES = [
+  ['commandblockoutput', 'Saída de blocos de comando', 'Mostra no chat o resultado de comandos executados por blocos de comando.'],
+  ['commandblocksenabled', 'Blocos de comando ativados', 'Permite que blocos de comando funcionem.'],
+  ['dodaylightcycle', 'Ciclo dia/noite', 'O tempo do dia avança. Desligado = o horário fica parado.'],
+  ['doentitydrops', 'Entidades dropam itens', 'Entidades que não são mobs (vagonetes, quadros…) dropam itens ao serem destruídas.'],
+  ['dofiretick', 'Fogo se espalha', 'O fogo se espalha e se apaga sozinho.'],
+  ['doimmediaterespawn', 'Renascer imediatamente', 'Jogadores renascem na hora, sem a tela de morte.'],
+  ['doinsomnia', 'Phantoms (insônia)', 'Phantoms aparecem para quem fica muito tempo sem dormir.'],
+  ['dolimitedcrafting', 'Fabricação limitada', 'Só permite fabricar receitas já desbloqueadas.'],
+  ['domobloot', 'Mobs dropam itens', 'Mobs dropam itens ao morrer.'],
+  ['domobspawning', 'Spawn de mobs', 'Mobs aparecem naturalmente no mundo.'],
+  ['dotiledrops', 'Blocos dropam itens', 'Blocos dropam itens quando quebrados.'],
+  ['doweathercycle', 'Ciclo de clima', 'O clima muda sozinho (chuva, tempestade).'],
+  ['drowningdamage', 'Dano de afogamento', 'Jogadores sofrem dano por afogamento.'],
+  ['falldamage', 'Dano de queda', 'Jogadores sofrem dano de queda.'],
+  ['firedamage', 'Dano de fogo', 'Jogadores sofrem dano de fogo.'],
+  ['freezedamage', 'Dano de congelamento', 'Jogadores sofrem dano de congelamento.'],
+  ['functioncommandlimit', 'Limite de comandos por função', 'Máximo de comandos que uma função executa por tick.', 'number'],
+  ['keepinventory', 'Manter inventário ao morrer', 'Mantém itens e experiência ao morrer.'],
+  ['maxcommandchainlength', 'Tamanho máximo da cadeia de comandos', 'Tamanho máximo de uma cadeia de blocos de comando.', 'number'],
+  ['mobgriefing', 'Mobs destroem blocos', 'Mobs podem destruir ou alterar blocos (creepers, endermen…).'],
+  ['naturalregeneration', 'Regeneração natural', 'A vida regenera sozinha quando a fome está cheia.'],
+  ['playerssleepingpercentage', '% de jogadores dormindo', 'Porcentagem de jogadores que precisam dormir para pular a noite.', 'number'],
+  ['projectilescanbreakblocks', 'Projéteis quebram blocos', 'Projéteis podem quebrar certos blocos.'],
+  ['pvp', 'PvP (jogador contra jogador)', 'Jogadores podem ferir outros jogadores.'],
+  ['randomtickspeed', 'Velocidade de tick aleatório', 'Afeta o crescimento de plantações e outros processos. Padrão: 1.', 'number'],
+  ['recipesunlock', 'Desbloquear receitas', 'Receitas são desbloqueadas ao coletar ingredientes.'],
+  ['respawnblocksexplode', 'Blocos de renascimento explodem', 'Camas e âncoras de renascimento explodem quando usadas na dimensão errada.'],
+  ['sendcommandfeedback', 'Mostrar retorno de comandos', 'Mostra no chat o retorno dos comandos dos jogadores.'],
+  ['showbordereffect', 'Efeito da borda do mundo', 'Mostra o efeito visual da borda do mundo.'],
+  ['showcoordinates', 'Mostrar coordenadas', 'Mostra as coordenadas na tela.'],
+  ['showdaysplayed', 'Mostrar dias jogados', 'Mostra quantos dias de jogo se passaram.'],
+  ['showdeathmessages', 'Mostrar mensagens de morte', 'Mostra mensagens quando jogadores morrem.'],
+  ['showtags', 'Mostrar tags de nome', 'Mostra as tags de nome sobre as entidades.'],
+  ['spawnradius', 'Raio de spawn', 'Raio ao redor do spawn onde jogadores renascem. Padrão: 10.', 'number'],
+  ['tntexplodes', 'TNT explode', 'O TNT pode explodir.'],
+].map(([k, label, desc, t]) => ({ k, label, desc, t: t || 'toggle' }));
+
+function asBig(v) {
+  if (typeof v === 'bigint') return v;
+  if (typeof v === 'boolean') return v ? 1n : 0n;
+  if (typeof v === 'number' && Number.isInteger(v)) return BigInt(v);
+  return null;
+}
+const isOn = (v) => { const b = asBig(v); return b !== null && b !== 0n; };
+
+/* ---- controles ---- */
+function toggleCtl(tag) {
+  const sw = h('button', { type: 'button', class: 'switch', role: 'switch' });
+  const lab = h('span', { class: 'swlabel' });
+  const paint = () => {
+    const on = isOn(tag.get('value'));
+    sw.setAttribute('aria-checked', on ? 'true' : 'false');
+    lab.textContent = on ? 'Ligado' : 'Desligado';
+    lab.className = 'swlabel' + (on ? ' on' : '');
+  };
+  sw.addEventListener('click', () => { tag.set('value', isOn(tag.get('value')) ? 0n : 1n); paint(); commit(); });
+  paint();
+  return [lab, sw];
+}
+function choiceCtl(tag, def) {
+  const seg = h('div', { class: 'seg', role: 'group' });
+  const cur = asBig(tag.get('value'));
+  const opts = def.opts.slice();
+  if (cur !== null && !opts.some(o => BigInt(o[0]) === cur)) opts.push([Number(cur), 'Outro (' + cur + ')', '❔']);
+  const paint = () => {
+    const c = asBig(tag.get('value'));
+    [...seg.children].forEach((b, i) => b.classList.toggle('sel', c !== null && BigInt(opts[i][0]) === c));
+  };
+  opts.forEach(o => seg.append(h('button', { type: 'button', onclick: () => { tag.set('value', BigInt(o[0])); paint(); commit(); } },
+    (o[2] ? o[2] + ' ' : '') + o[1])));
+  paint();
+  return [seg];
+}
+function numberCtl(tag) {
+  const type = tag.get('type');
+  const isInt = INT_TYPES.includes(type);
+  const info = isInt ? NBT.INT_INFO[NBT.NAME2ID[type]] : null;
+  const v = tag.get('value');
+  const shown = isInt ? String(asBig(v) ?? v) : (typeof v === 'number' ? NBT.fmtFloat(v, type) : String(v));
+  const inp = h('input', { class: 'inp mono', type: 'text', inputmode: isInt ? 'numeric' : 'decimal', value: shown, 'aria-label': 'valor' });
+  const hint = h('div', { class: 'hint hidden' });
+  inp.addEventListener('input', () => {
+    const s = inp.value.trim();
+    let ok = false, val = null, msg = '';
+    if (isInt) {
+      if (/^[+-]?\d+$/.test(s)) {
+        val = BigInt(s);
+        if (val >= info.min && val <= info.max) ok = true; else msg = 'Fora do intervalo de ' + type + ' (' + info.min + ' a ' + info.max + ').';
+      } else msg = 'Digite um número inteiro.';
+    } else {
+      if (/^[+-]?(\d+\.?\d*|\.\d+)([eE][+-]?\d+)?$/.test(s)) {
+        val = Number(s);
+        if (type === 'float' && !Number.isFinite(Math.fround(val))) msg = 'Valor grande demais para float.'; else ok = true;
+      } else msg = 'Digite um número (use ponto para decimais).';
+    }
+    inp.classList.toggle('invalid', !ok);
+    hint.textContent = msg; hint.classList.toggle('hidden', ok);
+    if (ok) { tag.set('value', val); commit(); }
+  });
+  return [inp, hint];
+}
+function textCtl(tag) {
+  const inp = h('input', { class: 'inp', type: 'text', value: String(tag.get('value')), 'aria-label': 'texto' });
+  inp.addEventListener('input', () => { tag.set('value', inp.value); commit(); });
+  return [inp];
+}
+
+/* escolhe o controle respeitando o tipo REAL do campo no arquivo */
+function controlFor(def, tag) {
+  const type = tag.get('type');
+  const isInt = INT_TYPES.includes(type), isReal = REAL_TYPES.includes(type);
+  if (type === 'string') return textCtl(tag);
+  if (!isInt && !isReal) return null;
+  if (def.t === 'toggle' && isInt) return toggleCtl(tag);
+  if (def.t === 'choice' && isInt) return choiceCtl(tag, def);
+  if (def.t === 'generic' && type === 'byte' && (asBig(tag.get('value')) === 0n || asBig(tag.get('value')) === 1n)) return toggleCtl(tag);
+  return numberCtl(tag);
+}
+
+function fieldRow(def, name, tag) {
+  const ctl = controlFor(def, tag);
+  if (!ctl) return null;
+  return h('div', { class: 'field', 'data-search': (def.label + ' ' + (def.desc || '') + ' ' + name).toLowerCase() },
+    h('div', { class: 'finfo' },
+      h('div', { class: 'flabel' }, def.label),
+      def.desc ? h('div', { class: 'fdesc' }, def.desc) : null,
+      h('code', { class: 'fkey' }, name + ' · ' + tag.get('type'))),
+    h('div', { class: 'fctl' }, ctl));
+}
+
+function section(title, rows, extraClass) {
+  const body = rows.filter(Boolean);
+  if (!body.length) return null;
+  return h('div', { class: 'gsection ' + (extraClass || '') }, h('h3', {}, title), body);
+}
+
+function renderGuided() {
+  const root = doc.get('root').get('value');
+  const lower = new Map();
+  for (const name of root.keys()) lower.set(name.toLowerCase(), name);
+  const used = new Set();
+  const build = (defs) => defs.map(def => {
+    const real = lower.get(def.k.toLowerCase());
+    if (!real) return null;
+    used.add(real);
+    return fieldRow(def, real, root.get(real));
+  });
+
+  const secs = [
+    section('🌍 Mundo', build(WORLD_FIELDS)),
+    section('⚙️ Opções do mundo e clima', build(OPTION_FIELDS)),
+    section('📜 Regras do jogo (gamerules)', build(GAMERULES)),
+  ];
+
+  // campos simples que não estão no catálogo
+  const generic = [];
+  let complex = 0;
+  for (const [name, tag] of root) {
+    if (used.has(name)) continue;
+    const type = tag.get('type');
+    if (type === 'string' || INT_TYPES.includes(type) || REAL_TYPES.includes(type))
+      generic.push(fieldRow({ t: 'generic', label: name, desc: '' }, name, tag));
+    else complex++;
+  }
+
+  const out = h('div', {}, secs.filter(Boolean));
+  if (!secs.some(Boolean) && !generic.length) out.append(h('div', { class: 'empty' }, 'Nenhum campo conhecido foi encontrado. Use o editor JSON acima.'));
+  if (generic.length) {
+    out.append(h('details', { class: 'more' },
+      h('summary', {}, '🔧 Outros campos (' + generic.length + ')' + (complex ? ' — mais ' + complex + ' estruturas só no JSON' : '')),
+      generic.filter(Boolean)));
+  } else if (complex) {
+    out.append(h('div', { class: 'empty' }, complex + ' estruturas complexas (listas e compounds) só podem ser editadas no JSON acima.'));
+  }
+  $('guidedFields').replaceChildren(out);
+  applySearch();
+}
+
+function applySearch() {
+  const q = $('search').value.trim().toLowerCase();
+  const root = $('guidedFields');
+  root.querySelectorAll('.field').forEach(f => f.classList.toggle('hidden', q !== '' && !f.dataset.search.includes(q)));
+  root.querySelectorAll('.gsection').forEach(s => s.classList.toggle('hidden', q !== '' && !s.querySelector('.field:not(.hidden)')));
+  const more = root.querySelector('details.more');
+  if (more && q) more.open = !!more.querySelector('.field:not(.hidden)');
+  if (more && q && !more.querySelector('.field:not(.hidden)')) more.classList.add('hidden'); else if (more) more.classList.remove('hidden');
+}
+$('search').addEventListener('input', applySearch);
+
+/* ================= passo 4: salvar ================= */
+$('oldCheck').addEventListener('change', (e) => $('oldOptions').classList.toggle('hidden', !e.target.checked));
+
+function download(name, bytes) {
+  const url = URL.createObjectURL(new Blob([bytes], { type: 'application/octet-stream' }));
+  const a = h('a', { href: url, download: name });
+  document.body.append(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 10000);
+}
+$('saveBtn').addEventListener('click', () => {
+  let bytes;
+  try { bytes = NBT.textToDat(ta.value); }
+  catch (e) { setStatus('saveStatus', 'err', 'Não foi possível gerar o arquivo: ' + (e instanceof NBT.NBTError ? e.message : e.message)); return; }
+  download('level.dat', bytes);
+  let msg = 'level.dat gerado (' + fmtBytes(bytes.length) + ').';
+  if ($('oldCheck').checked) {
+    const mode = document.querySelector('input[name="oldMode"]:checked').value;
+    const oldBytes = mode === 'original' && originalBytes ? originalBytes : bytes;
+    setTimeout(() => download('level.dat_old', oldBytes), 600);
+    msg = 'level.dat e level.dat_old gerados' + (mode === 'original' ? ' (o _old é o seu arquivo original).' : '.');
+  }
+  setStatus('saveStatus', 'ok', '✔ ' + msg + ' Coloque na pasta do mundo, substituindo os antigos (faça backup antes).');
+});
+})();
+</script>
+</body>
+</html>
