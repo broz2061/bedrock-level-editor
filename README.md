@@ -2,7 +2,7 @@
 
 Ferramenta web para visualizar e editar mundos do **Minecraft Bedrock Edition**, direto no navegador. Não precisa instalar nada, e os seus arquivos não são enviados para nenhum servidor.
 
-**Acesse:** https://SEU_USUARIO.github.io/NOME_DO_REPOSITORIO/
+**Acesse:** https://broz2061.github.io/bedrock-world-editor/
 
 > **Faça backup do seu mundo antes de usar.** Teste sempre as alterações numa **cópia**.
 
@@ -59,7 +59,7 @@ Todo o processamento acontece no seu navegador. Os seus arquivos não são envia
 
 1. Coloque o `index.html` e este `README.md` na **raiz** do repositório (**Add file > Upload files**).
 2. Em **Settings > Pages**, escolha **Deploy from a branch**, branch `main`, pasta `/ (root)`, e clique em **Save**.
-3. Em 1 a 2 minutos o site fica em `https://broz2061.github.io/bedrock-level-editor/`. Para ver uma atualização, use **Ctrl+F5**.
+3. Em 1 a 2 minutos o site fica em `https://broz2061.github.io/bedrock-world-editor/`. Para ver uma atualização, use **Ctrl+F5**.
 
 O repositório precisa ser **público** para o Pages gratuito funcionar.
 
