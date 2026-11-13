@@ -3,13 +3,15 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Bedrock .dat Editor — edite o level.dat do Minecraft Bedrock no navegador</title>
-<meta name="description" content="Edite o level.dat do seu mundo do Minecraft Bedrock direto no navegador: modo de jogo, dificuldade, gamerules e mais. Seu arquivo nunca sai do seu computador.">
+<title>Bedrock World Suite — Editor Completo de Mundo Minecraft Bedrock</title>
+<meta name="description" content="Edite o level.dat, inspecione inventários e baús via LevelDB e importe estruturas .mcstructure diretamente no seu mundo do Minecraft Bedrock no navegador.">
+<!-- JSZip para empacotar a pasta do mundo modificada -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <style>
 :root{
   --bg:#0a0e16; --panel:#111827; --panel2:#172033; --line:#26324b; --line2:#34425f;
   --text:#e7ecf6; --muted:#93a0bb; --accent:#34d399; --accent-d:#10b981; --accent2:#60a5fa;
-  --danger:#f87171; --warn:#fbbf24; --radius:16px;
+  --purple:#c084fc; --danger:#f87171; --warn:#fbbf24; --radius:16px;
   --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
 }
 *{box-sizing:border-box}
@@ -23,33 +25,36 @@ body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-s
 .hidden{display:none !important}
 a{color:var(--accent2)}
 code{font-family:var(--mono);font-size:.88em;background:rgba(255,255,255,.06);padding:.1em .4em;border-radius:6px;color:#fcd9a8}
-.wrap{max-width:1040px;margin:0 auto;padding:0 22px}
+.wrap{max-width:1100px;margin:0 auto;padding:0 22px}
 
 /* ---------- topo ---------- */
-.topbar{position:sticky;top:0;z-index:20;backdrop-filter:blur(10px);background:rgba(10,14,22,.72);border-bottom:1px solid var(--line)}
-.topbar .wrap{display:flex;align-items:center;justify-content:space-between;height:60px}
+.topbar{position:sticky;top:0;z-index:30;backdrop-filter:blur(10px);background:rgba(10,14,22,.82);border-bottom:1px solid var(--line)}
+.topbar .wrap{display:flex;align-items:center;justify-content:space-between;height:62px}
 .brand{display:flex;align-items:center;gap:10px;font-weight:800;letter-spacing:.2px;color:var(--text);text-decoration:none}
-.brand .logo{width:28px;height:28px;border-radius:7px;background:linear-gradient(135deg,var(--accent),var(--accent2));display:grid;place-items:center;color:#06281d;font-size:15px;font-weight:900}
-.toplinks a{color:var(--muted);text-decoration:none;margin-left:20px;font-size:.95rem}
-.toplinks a:hover{color:var(--text)}
+.brand .logo{width:30px;height:30px;border-radius:8px;background:linear-gradient(135deg,var(--accent),var(--accent2));display:grid;place-items:center;color:#06281d;font-size:15px;font-weight:900}
+.toplinks{display:flex;align-items:center;gap:18px}
+.toplinks a{color:var(--muted);text-decoration:none;font-size:.95rem;font-weight:600}
+.toplinks a:hover,.toplinks a.active{color:var(--accent)}
 
 /* ---------- botões ---------- */
-.btn{display:inline-block;text-decoration:none;text-align:center;appearance:none;border:0;cursor:pointer;font:inherit;font-weight:700;border-radius:12px;padding:12px 22px;color:var(--text);
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;text-decoration:none;text-align:center;appearance:none;border:0;cursor:pointer;font:inherit;font-weight:700;border-radius:12px;padding:12px 20px;color:var(--text);
   background:var(--panel2);border:1px solid var(--line2);transition:transform .15s,box-shadow .2s,background .2s,border-color .2s}
 .btn:hover{transform:translateY(-2px);border-color:var(--accent2)}
 .btn:active{transform:translateY(0)}
 .btn:disabled{opacity:.45;cursor:not-allowed;transform:none}
 .btn-primary{background:linear-gradient(135deg,var(--accent),#22d3ee);color:#04231a;border:0;box-shadow:0 8px 26px rgba(52,211,153,.28)}
 .btn-primary:hover{box-shadow:0 12px 34px rgba(52,211,153,.42);border:0}
-.btn-big{font-size:1.15rem;padding:16px 34px;border-radius:14px}
-.btn-sm{padding:7px 14px;font-size:.85rem;border-radius:9px;font-weight:600}
+.btn-purple{background:linear-gradient(135deg,#a855f7,#6366f1);color:#fff;border:0;box-shadow:0 8px 24px rgba(168,85,247,.25)}
+.btn-purple:hover{box-shadow:0 12px 30px rgba(168,85,247,.4)}
+.btn-big{font-size:1.12rem;padding:15px 30px;border-radius:14px}
+.btn-sm{padding:7px 13px;font-size:.85rem;border-radius:9px;font-weight:600}
 
 /* ---------- landing ---------- */
-.hero{padding:84px 0 40px;text-align:center;position:relative}
+.hero{padding:76px 0 36px;text-align:center;position:relative}
 .pill{display:inline-block;padding:6px 14px;border:1px solid var(--line2);border-radius:999px;color:var(--accent);font-size:.85rem;font-weight:600;background:rgba(52,211,153,.07)}
 .hero h1{font-size:clamp(2rem,5vw,3.3rem);line-height:1.08;margin:20px 0 16px;letter-spacing:-1px}
 .grad{background:linear-gradient(120deg,var(--accent),var(--accent2) 60%,#c084fc);-webkit-background-clip:text;background-clip:text;color:transparent}
-.hero p.lead{max-width:680px;margin:0 auto 30px;color:var(--muted);font-size:1.15rem}
+.hero p.lead{max-width:720px;margin:0 auto 30px;color:var(--muted);font-size:1.12rem}
 .badges{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:26px}
 .badge{font-size:.85rem;color:var(--muted);border:1px solid var(--line);padding:6px 12px;border-radius:999px;background:rgba(255,255,255,.03)}
 .cubes{position:absolute;inset:0;pointer-events:none;overflow:hidden}
@@ -58,134 +63,144 @@ code{font-family:var(--mono);font-size:.88em;background:rgba(255,255,255,.06);pa
 .cube.c2{right:9%;top:150px;background:linear-gradient(135deg,#60a5fa,#4f46e5);animation-delay:-2s;width:34px;height:34px}
 .cube.c3{left:15%;top:330px;background:linear-gradient(135deg,#fbbf24,#d97706);animation-delay:-4s;width:28px;height:28px}
 @keyframes float{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-18px) rotate(14deg)}}
-.section{padding:44px 0}
-.section h2{font-size:1.7rem;margin:0 0 8px;letter-spacing:-.4px}
-.section .sub{color:var(--muted);margin:0 0 26px}
+.section{padding:38px 0}
+.section h2{font-size:1.65rem;margin:0 0 8px;letter-spacing:-.4px}
+.section .sub{color:var(--muted);margin:0 0 24px}
 .grid{display:grid;gap:16px}
-.g3{grid-template-columns:repeat(auto-fit,minmax(230px,1fr))}
+.g3{grid-template-columns:repeat(auto-fit,minmax(250px,1fr))}
 .g4{grid-template-columns:repeat(auto-fit,minmax(210px,1fr))}
 .card{background:linear-gradient(180deg,rgba(255,255,255,.035),rgba(255,255,255,.015));border:1px solid var(--line);border-radius:var(--radius);padding:22px;transition:transform .2s,border-color .2s}
 .card:hover{transform:translateY(-3px);border-color:var(--line2)}
 .card .ico{font-size:1.9rem;margin-bottom:8px}
 .card h3{margin:0 0 6px;font-size:1.08rem}
-.card p{margin:0;color:var(--muted);font-size:.95rem}
-.step-n{width:34px;height:34px;border-radius:10px;background:rgba(52,211,153,.14);color:var(--accent);display:grid;place-items:center;font-weight:800;margin-bottom:12px}
+.card p{margin:0;color:var(--muted);font-size:.94rem}
 .callout{border:1px solid rgba(251,191,36,.4);background:rgba(251,191,36,.07);border-radius:var(--radius);padding:18px 22px;color:#f6e3b0}
-.cta-band{text-align:center;padding:50px 22px;margin:20px 0 60px;border:1px solid var(--line);border-radius:22px;
+.cta-band{text-align:center;padding:46px 22px;margin:20px 0 60px;border:1px solid var(--line);border-radius:22px;
   background:radial-gradient(600px 220px at 50% 0%,rgba(52,211,153,.14),transparent 70%),var(--panel)}
-.cta-band h2{margin:0 0 18px}
 details.faq{border:1px solid var(--line);border-radius:12px;padding:14px 18px;margin-bottom:10px;background:rgba(255,255,255,.02)}
 details.faq summary{cursor:pointer;font-weight:600}
 details.faq p{color:var(--muted);margin:10px 0 0}
 footer{border-top:1px solid var(--line);padding:26px 0 40px;color:var(--muted);font-size:.88rem;text-align:center}
 
-/* ---------- editor ---------- */
-.app-head{padding:34px 0 6px}
-.app-head h1{margin:0 0 6px;font-size:2rem;letter-spacing:-.5px}
-.app-head p{margin:0;color:var(--muted)}
-.panel,#editorArea{scroll-margin-top:76px}
-.panel{background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:26px;margin:22px 0}
+/* ---------- workspace tabs ---------- */
+.app-head{padding:28px 0 14px;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:14px}
+.app-head h1{margin:0;font-size:1.85rem;letter-spacing:-.5px}
+.app-head p{margin:4px 0 0;color:var(--muted);font-size:.95rem}
+
+.tabs{display:flex;gap:8px;flex-wrap:wrap;border-bottom:1px solid var(--line);padding-bottom:14px;margin-bottom:22px}
+.tab-btn{background:var(--panel2);border:1px solid var(--line2);color:var(--muted);padding:10px 18px;border-radius:12px;font-weight:700;cursor:pointer;font-size:.95rem;transition:all .15s;display:flex;align-items:center;gap:8px}
+.tab-btn:hover{color:var(--text);border-color:var(--accent2)}
+.tab-btn.active{background:linear-gradient(135deg,rgba(52,211,153,.18),rgba(96,165,250,.18));border-color:var(--accent);color:var(--text);box-shadow:0 4px 16px rgba(52,211,153,.15)}
+.tab-badge{font-size:.72rem;padding:2px 7px;border-radius:999px;background:rgba(52,211,153,.2);color:var(--accent);font-weight:800}
+
+/* ---------- painéis ---------- */
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:26px;margin:20px 0}
 .panel-title{display:flex;align-items:center;gap:12px;margin:0 0 6px;font-size:1.25rem}
 .num{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#04231a;font-weight:900;font-size:.95rem;flex:none}
 .panel-desc{margin:0 0 18px;color:var(--muted);font-size:.95rem}
 
-.drop{display:block;position:relative;cursor:pointer;text-align:center;padding:44px 20px;border-radius:18px;border:2px dashed var(--line2);
+.drop{display:block;position:relative;cursor:pointer;text-align:center;padding:38px 20px;border-radius:18px;border:2px dashed var(--line2);
   background:radial-gradient(500px 160px at 50% 0%,rgba(96,165,250,.10),transparent 70%),var(--panel2);
-  transition:border-color .2s,transform .2s,box-shadow .25s,background .2s}
-.drop:hover,.drop.over,.drop:focus-within{border-color:var(--accent);transform:translateY(-2px);box-shadow:0 0 0 5px rgba(52,211,153,.12),0 14px 40px rgba(0,0,0,.35)}
+  transition:border-color .2s,transform .2s,box-shadow .25s}
+.drop:hover,.drop.over{border-color:var(--accent);transform:translateY(-2px);box-shadow:0 0 0 5px rgba(52,211,153,.12)}
 .drop.has{border-style:solid;border-color:var(--accent)}
 .drop input{position:absolute;width:1px;height:1px;opacity:0;overflow:hidden}
-.drop svg{width:58px;height:58px;color:var(--accent);margin-bottom:8px}
-.drop .t1{font-size:1.25rem;font-weight:800}
-.drop .t2{color:var(--muted);font-size:.95rem;margin-top:4px}
-.drop .fake{display:inline-block;margin-top:16px;padding:11px 26px;border-radius:12px;font-weight:800;color:#04231a;background:linear-gradient(135deg,var(--accent),#22d3ee);box-shadow:0 8px 24px rgba(52,211,153,.28)}
+.drop .t1{font-size:1.2rem;font-weight:800}
+.drop .t2{color:var(--muted);font-size:.92rem;margin-top:4px}
+.drop .fake{display:inline-block;margin-top:14px;padding:10px 22px;border-radius:12px;font-weight:800;color:#04231a;background:linear-gradient(135deg,var(--accent),#22d3ee)}
+
 .center{text-align:center}
-.actions{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:20px}
+.actions{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:18px}
 .status{margin-top:14px;font-weight:600;font-size:.95rem;min-height:1.4em;white-space:pre-wrap;word-break:break-word}
 .status.ok{color:var(--accent)} .status.err{color:var(--danger)} .status.wait{color:var(--warn)}
 .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;justify-content:center}
 .chip{font-size:.82rem;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:4px 12px;background:rgba(255,255,255,.03)}
 .chip b{color:var(--text)}
 
-.editor-panel{border-color:rgba(52,211,153,.45);box-shadow:0 0 0 1px rgba(52,211,153,.12),0 20px 60px rgba(0,0,0,.4)}
-.toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px}
-.toolbar .grow{flex:1}
-textarea.json{width:100%;height:440px;resize:vertical;background:#0b1220;color:#8be9c8;border:1px solid var(--line2);border-radius:12px;
-  padding:16px;font-family:var(--mono);font-size:13.5px;line-height:1.5;white-space:pre;overflow:auto;tab-size:2;outline:none;transition:border-color .2s,box-shadow .2s}
-textarea.json:focus{border-color:var(--accent);box-shadow:0 0 0 4px rgba(52,211,153,.12)}
-textarea.json.bad{border-color:var(--danger);box-shadow:0 0 0 4px rgba(248,113,113,.12)}
-.vstatus{font-size:.92rem;font-weight:600;margin-top:10px;word-break:break-word}
-.vstatus.ok{color:var(--accent)} .vstatus.err{color:var(--danger)}
-.legend{font-size:.85rem;color:var(--muted);margin-top:8px}
+/* ---------- mode switcher (Simples vs Código) ---------- */
+.mode-toggle{display:inline-flex;background:#0b1220;border:1px solid var(--line2);border-radius:11px;padding:4px;gap:4px}
+.mode-toggle button{border:0;background:transparent;color:var(--muted);padding:7px 14px;border-radius:8px;font-weight:700;font-size:.86rem;cursor:pointer;transition:all .15s}
+.mode-toggle button.active{background:var(--panel2);color:var(--accent);box-shadow:0 2px 8px rgba(0,0,0,.3)}
 
-/* ---------- editor guiado ---------- */
+/* ---------- JSON & Guiado ---------- */
+textarea.json{width:100%;height:420px;resize:vertical;background:#0b1220;color:#8be9c8;border:1px solid var(--line2);border-radius:12px;
+  padding:16px;font-family:var(--mono);font-size:13.5px;line-height:1.5;white-space:pre;overflow:auto;tab-size:2;outline:none}
+textarea.json:focus{border-color:var(--accent)}
+textarea.json.bad{border-color:var(--danger)}
+.vstatus{font-size:.92rem;font-weight:600;margin-top:10px}
+.vstatus.ok{color:var(--accent)} .vstatus.err{color:var(--danger)}
+
 .search{width:100%;max-width:460px;padding:10px 14px;border-radius:10px;border:1px solid var(--line2);background:#0b1220;color:var(--text);font:inherit;outline:none}
-.search:focus{border-color:var(--accent2)}
-.locked-banner{display:none;border:1px solid rgba(248,113,113,.5);background:rgba(248,113,113,.08);color:#fecaca;border-radius:12px;padding:12px 16px;margin-bottom:14px;font-weight:600}
-#guided.locked .locked-banner{display:block}
-#guided.locked .gbody{opacity:.35;pointer-events:none;filter:grayscale(.6)}
 .gsection{margin-top:22px}
-.gsection h3{margin:0 0 10px;font-size:1.05rem;color:var(--accent);letter-spacing:.3px;text-transform:uppercase;font-size:.82rem}
-.field{display:flex;gap:18px;align-items:center;justify-content:space-between;padding:14px 16px;border:1px solid var(--line);border-radius:14px;margin-bottom:10px;background:rgba(255,255,255,.02);transition:border-color .2s,background .2s}
-.field:hover{border-color:var(--line2);background:rgba(255,255,255,.035)}
+.gsection h3{margin:0 0 10px;color:var(--accent);letter-spacing:.3px;text-transform:uppercase;font-size:.82rem}
+.field{display:flex;gap:18px;align-items:center;justify-content:space-between;padding:14px 16px;border:1px solid var(--line);border-radius:14px;margin-bottom:10px;background:rgba(255,255,255,.02)}
 .finfo{min-width:0;flex:1}
 .flabel{font-weight:700}
 .fdesc{color:var(--muted);font-size:.88rem;margin-top:2px}
 .fkey{display:inline-block;margin-top:6px;font-size:.75rem;color:#7d8aa6;background:rgba(255,255,255,.04)}
 .fctl{flex:none;display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end;max-width:55%}
-.switch{position:relative;width:58px;height:32px;border-radius:999px;border:1px solid var(--line2);background:#243049;cursor:pointer;padding:0;transition:background .2s,border-color .2s;flex:none}
-.switch::after{content:"";position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:50%;background:#cbd5e1;transition:transform .2s,background .2s}
+.switch{position:relative;width:54px;height:30px;border-radius:999px;border:1px solid var(--line2);background:#243049;cursor:pointer;padding:0;transition:background .2s}
+.switch::after{content:"";position:absolute;top:2px;left:3px;width:24px;height:24px;border-radius:50%;background:#cbd5e1;transition:transform .2s}
 .switch[aria-checked="true"]{background:var(--accent-d);border-color:var(--accent)}
-.switch[aria-checked="true"]::after{transform:translateX(26px);background:#fff}
-.switch:focus-visible,.seg button:focus-visible,.btn:focus-visible{outline:3px solid rgba(96,165,250,.6);outline-offset:2px}
-.swlabel{font-size:.82rem;font-weight:700;color:var(--muted);min-width:64px;text-align:right}
+.switch[aria-checked="true"]::after{transform:translateX(23px);background:#fff}
+.swlabel{font-size:.82rem;font-weight:700;color:var(--muted);min-width:62px;text-align:right}
 .swlabel.on{color:var(--accent)}
 .seg{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
-.seg button{border:1px solid var(--line2);background:#0f1729;color:var(--text);border-radius:10px;padding:9px 14px;cursor:pointer;font:inherit;font-weight:600;font-size:.92rem;transition:all .15s}
-.seg button:hover{border-color:var(--accent2)}
-.seg button.sel{background:linear-gradient(135deg,var(--accent),#22d3ee);color:#04231a;border-color:transparent;box-shadow:0 6px 18px rgba(52,211,153,.25)}
-.inp{width:230px;max-width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--line2);background:#0b1220;color:var(--text);font:inherit;outline:none}
+.seg button{border:1px solid var(--line2);background:#0f1729;color:var(--text);border-radius:10px;padding:8px 13px;cursor:pointer;font:inherit;font-weight:600;font-size:.9rem}
+.seg button.sel{background:linear-gradient(135deg,var(--accent),#22d3ee);color:#04231a;border-color:transparent}
+.inp{width:210px;max-width:100%;padding:9px 12px;border-radius:10px;border:1px solid var(--line2);background:#0b1220;color:var(--text);font:inherit;outline:none}
 .inp.mono{font-family:var(--mono)}
+.inp.sm{width:110px}
 .inp:focus{border-color:var(--accent)}
-.inp.invalid{border-color:var(--danger);box-shadow:0 0 0 3px rgba(248,113,113,.15)}
-.hint{font-size:.78rem;color:var(--danger);width:100%;text-align:right}
-details.more{margin-top:24px;border:1px solid var(--line);border-radius:14px;padding:6px 16px;background:rgba(255,255,255,.015)}
-details.more>summary{cursor:pointer;padding:10px 0;font-weight:700;color:var(--muted)}
-.empty{color:var(--muted);font-size:.92rem;padding:8px 2px}
 
-/* ---------- salvar ---------- */
-.optbox{display:flex;gap:14px;align-items:flex-start;padding:16px 18px;border:1px solid var(--line2);border-radius:14px;background:var(--panel2);cursor:pointer;transition:border-color .2s}
-.optbox:hover{border-color:var(--accent)}
-.optbox input[type=checkbox]{width:22px;height:22px;margin-top:2px;accent-color:var(--accent);flex:none;cursor:pointer}
-.optbox b{display:block}
-.optbox span{color:var(--muted);font-size:.9rem}
-.suboptions{margin:12px 0 0 36px;display:grid;gap:8px}
-.suboptions label{display:flex;gap:10px;align-items:flex-start;cursor:pointer;font-size:.93rem;padding:10px 12px;border:1px solid var(--line);border-radius:10px}
-.suboptions input{accent-color:var(--accent);margin-top:3px}
-.suboptions small{display:block;color:var(--muted)}
-.savebar{margin-top:22px;text-align:center}
-.warnline{color:var(--warn);font-size:.88rem;margin-top:12px}
-.tip{margin-top:16px;border:1px solid var(--line);border-radius:12px;padding:6px 16px;background:rgba(255,255,255,.02)}
-.tip summary{cursor:pointer;padding:8px 0;font-weight:600;color:var(--muted)}
-.tip p,.tip li{color:var(--muted);font-size:.9rem}
+/* ---------- LevelDB & Inventários ---------- */
+.db-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;margin-top:16px}
+.db-box{background:#0b1220;border:1px solid var(--line);border-radius:14px;padding:16px}
+.db-box h4{margin:0 0 8px;color:var(--accent2);font-size:.95rem;display:flex;align-items:center;justify-content:space-between}
+.file-list{max-height:220px;overflow-y:auto;font-family:var(--mono);font-size:.8rem;color:var(--muted);display:grid;gap:4px}
+.file-item{display:flex;justify-content:space-between;padding:4px 8px;border-radius:6px;background:rgba(255,255,255,.02)}
+.inv-slot-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;margin-top:12px}
+.inv-item{background:var(--panel2);border:1px solid var(--line2);border-radius:10px;padding:10px;font-size:.85rem}
+.inv-item .slot-tag{font-size:.72rem;color:var(--accent);font-weight:700;text-transform:uppercase}
+.inv-item .item-name{font-weight:700;margin:3px 0;word-break:break-all}
+.inv-item .item-count{color:var(--muted);font-size:.8rem}
 
-@media (max-width:720px){
+/* ---------- .mcstructure & Visualizador 3D/2D de Camadas ---------- */
+.struct-layout{display:grid;grid-template-columns:1fr 340px;gap:20px;align-items:start}
+.canvas-wrap{background:#070b12;border:1px solid var(--line2);border-radius:16px;padding:16px;text-align:center}
+canvas#structCanvas{max-width:100%;background:#0b1220;border-radius:10px;border:1px solid var(--line);image-rendering:pixelated}
+.coord-inputs{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:12px 0}
+.coord-box label{display:block;font-size:.78rem;color:var(--muted);margin-bottom:4px;font-weight:700}
+.coord-box input{width:100%;padding:9px;border-radius:9px;border:1px solid var(--line2);background:#0b1220;color:var(--text);font-family:var(--mono);font-weight:700}
+.palette-list{max-height:200px;overflow-y:auto;display:grid;gap:6px;margin-top:10px}
+.pal-row{display:flex;align-items:center;gap:8px;font-size:.82rem;background:#0b1220;padding:6px 10px;border-radius:8px;border:1px solid var(--line)}
+.pal-swatch{width:14px;height:14px;border-radius:4px;flex:none}
+
+.tip{margin-top:16px;border:1px solid var(--line);border-radius:12px;padding:8px 16px;background:rgba(255,255,255,.02)}
+.tip summary{cursor:pointer;padding:6px 0;font-weight:600;color:var(--muted)}
+.tip p{color:var(--muted);font-size:.9rem;margin:8px 0}
+
+@media (max-width:860px){
+  .struct-layout{grid-template-columns:1fr}
   .field{flex-direction:column;align-items:stretch}
   .fctl{max-width:none;justify-content:flex-start}
-  .seg{justify-content:flex-start}
-  .hint{text-align:left}
-  .toplinks a{margin-left:12px}
-  .panel{padding:18px}
 }
-@media (prefers-reduced-motion:reduce){*{animation:none !important;transition:none !important}html{scroll-behavior:auto}}
-</style>
+.slot{width:100%;aspect-ratio:1;min-width:0;border:2px solid #3b4660;background:#1b2333;border-radius:6px;position:relative;cursor:pointer;padding:0;color:#fff;font:700 10px var(--mono)}
+.slot.sel{border-color:var(--accent);box-shadow:0 0 0 3px rgba(52,211,153,.25)}.slot i{position:absolute;inset:5px 5px 15px;border-radius:4px}
+.slot b{position:absolute;right:3px;bottom:1px;font-size:12px;text-shadow:0 1px 2px #000}.slot em{position:absolute;left:3px;bottom:1px;font-style:normal;font-size:8px}
+.slot.ench i{box-shadow:0 0 10px 2px #c084fc}.sgrid{display:grid;grid-template-columns:repeat(9,minmax(0,1fr));gap:4px;margin:4px 0 12px}
+.ied{border:1px solid var(--line2);border-radius:12px;padding:14px;margin-top:10px}.ied label{display:block;font-size:.85rem;color:var(--muted);margin-top:8px}
+.ied input[type=text],.ied input[type=number],.ied textarea,.ied select{width:100%;background:#0b1220;color:var(--text);border:1px solid var(--line2);border-radius:8px;padding:8px;font:inherit}</style>
 </head>
 <body>
 
 <header class="topbar">
   <div class="wrap">
-    <a class="brand" href="#" id="brandLink"><span class="logo">B</span> Bedrock .dat Editor</a>
-    <nav class="toplinks"><a href="#" id="navHome">Início</a><a href="#editor" id="navEditor">Abrir editor</a></nav>
+    <a class="brand" href="#" id="brandLink"><span class="logo">B</span> Bedrock World Suite</a>
+    <nav class="toplinks">
+      <a href="#" id="navHome">Início</a>
+      <a href="#editor" id="navEditor">Abrir Suite</a>
+    </nav>
   </div>
 </header>
 
@@ -194,167 +209,317 @@ details.more>summary{cursor:pointer;padding:10px 0;font-weight:700;color:var(--m
   <section class="hero">
     <div class="cubes" aria-hidden="true"><div class="cube c1"></div><div class="cube c2"></div><div class="cube c3"></div></div>
     <div class="wrap">
-      <span class="pill">Minecraft Bedrock Edition • Open-source</span>
-      <h1>Edite o <span class="grad">level.dat</span><br>do seu mundo, direto no navegador</h1>
-      <p class="lead">Mude o modo de jogo, a dificuldade, as gamerules e muito mais com botões simples, ou mexa no código completo do arquivo. Sem instalar nada.</p>
-      <a class="btn btn-primary btn-big" href="#editor">Abrir o editor →</a>
+      <span class="pill">Minecraft Bedrock Edition • v2.0 Full World Suite</span>
+      <h1>Edite o <span class="grad">Mundo Inteiro</span><br>do Bedrock no Navegador</h1>
+      <p class="lead">Edite configurações do <code>level.dat</code>, inspecione inventários e baús do banco <code>LevelDB (db/)</code> e importe construções <code>.mcstructure</code> posicionando-as diretamente nos chunks do seu mundo.</p>
+      <div class="actions">
+        <a class="btn btn-primary btn-big" href="#editor">Abrir Suite de Edição →</a>
+      </div>
       <div class="badges">
-        <span class="badge">🔒 Seu arquivo nunca sai do seu computador</span>
-        <span class="badge">⚡ Sem servidor: tudo roda no navegador</span>
-        <span class="badge">🆓 Grátis</span>
+        <span class="badge">🔒 100% Client-Side: seus arquivos nunca saem do PC</span>
+        <span class="badge">🗂️ Suporte a Pasta Completa & ZIP</span>
+        <span class="badge">🧱 Importador de .mcstructure</span>
       </div>
     </div>
   </section>
 
   <section class="section">
     <div class="wrap">
-      <h2>O que este site faz</h2>
-      <p class="sub">O <code>level.dat</code> guarda as configurações do mundo, mas é um arquivo binário que editor de texto nenhum consegue abrir. Este site resolve isso:</p>
+      <h2>Módulos Integrados</h2>
+      <p class="sub">Uma suíte completa com modo visual didático e modo de edição de código sincronizados.</p>
       <div class="grid g3">
-        <div class="card"><div class="ico">🔓</div><h3>Decodifica</h3><p>Lê o formato NBT do Bedrock (com o cabeçalho de 8 bytes) e mostra tudo como um JSON legível.</p></div>
-        <div class="card"><div class="ico">🎛️</div><h3>Edita do jeito fácil</h3><p>Um painel guiado com interruptores e opções clicáveis para as configurações mais usadas, sem decorar números.</p></div>
-        <div class="card"><div class="ico">💾</div><h3>Gera o arquivo de volta</h3><p>Converte o JSON editado para um <code>level.dat</code> válido, preservando cada tipo de dado (byte, int, long, float…).</p></div>
+        <div class="card">
+          <div class="ico">⚙️</div>
+          <h3>Editor de level.dat</h3>
+          <p>Decodifique o cabeçalho de 8 bytes e NBT Little-Endian. Edite modo de jogo, dificuldade, gamerules e seed no painel guiado ou direto no JSON.</p>
+        </div>
+        <div class="card">
+          <div class="ico">🗄️</div>
+          <h3>Leitor LevelDB (db/)</h3>
+          <p>Carregue a pasta do mundo inteira. Lê <code>CURRENT</code>, <code>MANIFEST</code>, <code>.ldb</code> e <code>.log</code> para listar inventários de jogadores, baús e baú do fim.</p>
+        </div>
+        <div class="card">
+          <div class="ico">🏗️</div>
+          <h3>Estruturas .mcstructure</h3>
+          <p>Importe construções salvas em <code>.mcstructure</code>, visualize por camadas, escolha as coordenadas X, Y, Z e injete direto no mundo antes de baixar.</p>
+        </div>
       </div>
     </div>
   </section>
 
   <section class="section">
     <div class="wrap">
-      <h2>Como funciona</h2>
-      <p class="sub">Quatro passos, menos de um minuto.</p>
-      <div class="grid g4">
-        <div class="card"><div class="step-n">1</div><h3>Escolha o arquivo</h3><p>Selecione ou arraste o <code>level.dat</code> do seu mundo.</p></div>
-        <div class="card"><div class="step-n">2</div><h3>Decodifique</h3><p>O conteúdo aparece em JSON, pronto para editar.</p></div>
-        <div class="card"><div class="step-n">3</div><h3>Edite</h3><p>Use o painel guiado ou altere o JSON diretamente. Os dois ficam sincronizados.</p></div>
-        <div class="card"><div class="step-n">4</div><h3>Salve e baixe</h3><p>Baixe o novo <code>level.dat</code> (e, se quiser, o <code>level.dat_old</code>) e coloque na pasta do mundo.</p></div>
-      </div>
+      <div class="callout"><b>⚠️ Sempre faça backup!</b> Antes de substituir qualquer arquivo na sua pasta <code>minecraftWorlds</code>, mantenha uma cópia de segurança do mundo original. Ao exportar pelo site, você pode baixar um <code>.zip</code> completo com tudo organizado.</div>
     </div>
   </section>
 
   <section class="section">
     <div class="wrap">
-      <h2>O que você pode editar</h2>
-      <p class="sub">Tudo que estiver no arquivo pode ser alterado no JSON. O painel guiado cobre os campos mais populares:</p>
-      <div class="grid g3">
-        <div class="card"><div class="ico">🎮</div><h3>Modo de jogo e dificuldade</h3><p>Sobrevivência, Criativo, Aventura; Pacífico até Difícil.</p></div>
-        <div class="card"><div class="ico">📜</div><h3>Gamerules</h3><p><code>keepinventory</code>, <code>mobgriefing</code>, <code>pvp</code>, ciclo de dia/noite, <code>randomtickspeed</code> e dezenas de outras.</p></div>
-        <div class="card"><div class="ico">🌍</div><h3>Mundo</h3><p>Nome, seed, ponto de spawn, clima, trapaças ativadas e outras opções.</p></div>
-      </div>
+      <h2>Onde ficam os arquivos do mundo?</h2>
+      <details class="faq" open>
+        <summary>Caminhos no Windows e Android</summary>
+        <p><b>Windows (Minecraft Bedrock atual):</b> <code>%AppData%\Minecraft Bedrock\Users\12345678912345678912\games\com.mojang\minecraftWorlds\</code><br>
+        A pasta com números é o seu ID de jogador (o seu terá outro número; ignore a pasta <code>Shared</code>). Cole o caminho com <code>%AppData%</code> na barra do Explorador de Arquivos.<br><br>
+        <b>Windows (versão antiga UWP):</b> <code>%LocalAppData%\Packages\Microsoft.MinecraftUWP_8wekyb3d8bbwe\LocalState\games\com.mojang\minecraftWorlds\</code><br><br>
+        <b>Android:</b> <code>Android/data/com.mojang.minecraftpe/files/games/com.mojang/minecraftWorlds/</code></p>
+      </details>
     </div>
   </section>
-
-  <section class="section">
-    <div class="wrap">
-      <div class="callout"><b>⚠️ Faça backup antes!</b> Copie o <code>level.dat</code> original para outro lugar antes de substituir. Se algo der errado, basta restaurar a cópia. Alterar certos campos pode impedir o mundo de abrir.</div>
-    </div>
-  </section>
-
-  <section class="section">
-    <div class="wrap">
-      <h2>Perguntas rápidas</h2>
-      <details class="faq"><summary>Meu arquivo é enviado para algum servidor?</summary><p>Não. Toda a leitura e a geração do arquivo acontecem no seu navegador, com JavaScript. Nada é enviado para a internet.</p></details>
-      <details class="faq"><summary>Onde fica o level.dat?</summary><p>Dentro da pasta do mundo, em <code>minecraftWorlds</code>. No Windows (Bedrock/UWP): <code>%LocalAppData%\Packages\Microsoft.MinecraftUWP_8wekyb3d8bbwe\LocalState\games\com.mojang\minecraftWorlds\</code>. No Android: <code>Android/data/com.mojang.minecraftpe/files/games/com.mojang/minecraftWorlds/</code> (versões novas do Android podem exigir um gerenciador de arquivos).</p></details>
-      <details class="faq"><summary>E o level.dat_old?</summary><p>É uma cópia do arquivo anterior que o jogo mantém ao lado do <code>level.dat</code>. Ele tem o mesmo formato, então o editor também abre esse arquivo. Na hora de salvar você pode baixar um <code>level.dat_old</code> junto.</p></details>
-      <details class="faq"><summary>Funciona com Minecraft Java?</summary><p>Não. O Java usa outro formato (NBT compactado e em outra ordem de bytes). Este editor é só para o Bedrock.</p></details>
-    </div>
-  </section>
-
-  <div class="wrap">
-    <div class="cta-band">
-      <h2>Pronto para editar o seu mundo?</h2>
-      <a class="btn btn-primary btn-big" href="#editor">Abrir o editor →</a>
-    </div>
-  </div>
 </main>
 
-<!-- ======================= EDITOR ======================= -->
+<!-- ======================= SUITE DE EDIÇÃO ======================= -->
 <main id="appView" class="hidden">
   <div class="wrap">
     <div class="app-head">
-      <h1>Editor de <span class="grad">level.dat</span></h1>
-      <p>Tudo roda no seu navegador. Nenhum arquivo é enviado para a internet.</p>
+      <div>
+        <h1>Bedrock <span class="grad">World Suite</span></h1>
+        <p>Carregue a pasta inteira do mundo ou arquivos individuais. Tudo roda localmente.</p>
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <button class="btn btn-primary" id="openFolderBtn">📂 Abrir Pasta do Mundo</button>
+        <button class="btn btn-purple" id="exportWorldZipBtn" disabled>📦 Baixar Mundo Completo (.ZIP)</button>
+      </div>
     </div>
 
-    <!-- 1 -->
-    <section class="panel">
-      <h2 class="panel-title"><span class="num">1</span> Escolha o seu level.dat</h2>
-      <p class="panel-desc">Selecione o arquivo do mundo (também funciona com o <code>level.dat_old</code>).</p>
-      <label class="drop" id="drop">
-        <input type="file" id="fileInput">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V4m0 0 4 4m-4-4L8 8"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg>
-        <div class="t1" id="dropTitle">Arraste o level.dat aqui</div>
-        <div class="t2" id="dropSub">ou clique para escolher o arquivo no seu computador</div>
-        <span class="fake" id="dropBtn">📂 Selecionar level.dat</span>
-      </label>
-      <div class="actions"><button class="btn btn-primary btn-big" id="decodeBtn" disabled>🔓 Decodificar level.dat</button></div>
-      <div class="center"><div class="status" id="decodeStatus" role="status"></div><div class="chips" id="chips"></div></div>
-      <details class="tip"><summary>Onde encontro o level.dat?</summary>
-        <p><b>Windows:</b> <code>%AppData%\Minecraft Bedrock\Users\12345678912345678912\games\com.mojang\minecraftWorlds\</code> e abra a pasta do seu mundo.<br>
-        <b>Android:</b> <code>Android/data/com.mojang.minecraftpe/files/games/com.mojang/minecraftWorlds/</code></p>
-      </details>
-    </section>
-
-    <div id="editorArea" class="hidden">
-      <!-- 2 -->
-      <section class="panel editor-panel">
-        <h2 class="panel-title"><span class="num">2</span> Código JSON (edição completa)</h2>
-        <p class="panel-desc">Cada campo é <code>{"type": "...", "value": ...}</code>. Edite só o <code>value</code> e mantenha o <code>type</code>. Flags verdadeiro/falso são <code>byte</code>: <code>1</code> = ligado, <code>0</code> = desligado.</p>
-        <div class="toolbar">
-          <button class="btn btn-sm" id="copyBtn">📋 Copiar JSON</button>
-          <button class="btn btn-sm" id="formatBtn">✨ Formatar</button>
-          <button class="btn btn-sm" id="resetBtn">↩️ Restaurar original</button>
+    <!-- Barra de status global do mundo carregado -->
+    <div id="worldBanner" class="panel hidden" style="padding:16px 22px;border-color:rgba(52,211,153,.4);background:rgba(52,211,153,.05)">
+      <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:12px">
+        <div>
+          <strong style="color:var(--accent);font-size:1.05rem" id="worldBannerTitle">🌍 Mundo Carregado</strong>
+          <div style="font-size:.88rem;color:var(--muted)" id="worldBannerSub">Pronto para edição</div>
         </div>
-        <textarea class="json" id="jsonEditor" spellcheck="false" autocomplete="off" autocapitalize="off"></textarea>
-        <div class="vstatus ok" id="vstatus" role="status"></div>
-        <div class="legend">Tipos: <code>byte</code> -128..127 · <code>short</code> · <code>int</code> · <code>long</code> (64 bits) · <code>float</code>/<code>double</code> (decimais) · <code>string</code> (texto)</div>
-      </section>
+        <div class="chips" id="worldGlobalChips" style="margin:0"></div>
+      </div>
+    </div>
 
-      <!-- 3 -->
-      <section class="panel" id="guided">
-        <h2 class="panel-title"><span class="num">3</span> Editor guiado</h2>
-        <p class="panel-desc">A mesma edição, sem precisar mexer no código. Qualquer mudança aqui atualiza o JSON acima, e vice-versa.</p>
-        <div class="locked-banner">O JSON acima tem um erro. Corrija-o para voltar a usar o editor guiado.</div>
-        <div class="gbody">
-          <input class="search" id="search" type="search" placeholder="🔎 Buscar opção (ex.: inventário, pvp, seed)" autocomplete="off">
-          <div id="guidedFields"></div>
-        </div>
-      </section>
+    <!-- Abas dos Módulos -->
+    <nav class="tabs" role="tablist">
+      <button class="tab-btn active" data-tab="tab-leveldat">⚙️ 1. Editor level.dat <span class="tab-badge">NBT</span></button>
+      <button class="tab-btn" data-tab="tab-leveldb">🗄️ 2. Banco LevelDB & Inventários <span class="tab-badge">db/</span></button>
+      <button class="tab-btn" data-tab="tab-structure">🏗️ 3. Construtor & .mcstructure <span class="tab-badge">3D/Chunks</span></button>
+    </nav>
 
-      <!-- 4 -->
+    <!-- =====================================================================
+         ABA 1: EDITOR LEVEL.DAT (DUAL MODE: GUIADO & JSON)
+    ====================================================================== -->
+    <div id="tab-leveldat" class="tab-content">
       <section class="panel">
-        <h2 class="panel-title"><span class="num">4</span> Salvar e baixar</h2>
-        <p class="panel-desc">Gera um <code>level.dat</code> válido a partir do que está no editor.</p>
-        <label class="optbox">
-          <input type="checkbox" id="oldCheck">
-          <div><b>Baixar também o level.dat_old</b><span>Acompanha um arquivo <code>level.dat_old</code> junto com o <code>level.dat</code>.</span></div>
+        <h2 class="panel-title"><span class="num">1</span> Arquivo level.dat</h2>
+        <p class="panel-desc">Se você abriu a pasta do mundo acima, o <code>level.dat</code> já é carregado automaticamente. Ou envie um arquivo avulso abaixo:</p>
+        <label class="drop" id="drop">
+          <input type="file" id="fileInput">
+          <div class="t1" id="dropTitle">Arraste o level.dat aqui</div>
+          <div class="t2" id="dropSub">ou clique para selecionar manualmente</div>
+          <span class="fake" id="dropBtn">📂 Selecionar level.dat</span>
         </label>
-        <div class="suboptions hidden" id="oldOptions">
-          <label><input type="radio" name="oldMode" value="edited" checked><div>Cópia do level.dat editado<small>Os dois arquivos ficam idênticos.</small></div></label>
-          <label><input type="radio" name="oldMode" value="original"><div>Meu arquivo original (backup)<small>O arquivo exatamente como você enviou, sem as suas edições.</small></div></label>
+        <div class="center">
+          <div class="status" id="decodeStatus" role="status"></div>
+          <div class="chips" id="chips"></div>
         </div>
-        <div class="savebar">
-          <button class="btn btn-primary btn-big" id="saveBtn">💾 Salvar e baixar</button>
-          <div class="status" id="saveStatus" role="status"></div>
-          <div class="warnline">Ao baixar dois arquivos, o navegador pode pedir permissão para “baixar vários arquivos”. Aceite.</div>
+      </section>
+
+      <div id="editorArea" class="hidden">
+        <section class="panel">
+          <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:12px;margin-bottom:16px">
+            <div>
+              <h2 class="panel-title" style="margin:0"><span class="num">2</span> Editar Configurações do Mundo</h2>
+              <p class="panel-desc" style="margin:4px 0 0">Alterne entre o modo didático visual e o código JSON bruto. Ambos ficam 100% sincronizados.</p>
+            </div>
+            <div class="mode-toggle" id="datModeToggle">
+              <button type="button" class="active" data-mode="simple">🎛️ Modo Didático (Simples)</button>
+              <button type="button" data-mode="code">💻 Modo Código (JSON)</button>
+            </div>
+          </div>
+
+          <!-- Modo Simples -->
+          <div id="datSimpleView">
+            <input class="search" id="search" type="search" placeholder="🔎 Buscar opção (ex.: inventário, pvp, seed, criativo)..." autocomplete="off">
+            <div id="guidedFields"></div>
+          </div>
+
+          <!-- Modo Código -->
+          <div id="datCodeView" class="hidden">
+            <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px">
+              <button class="btn btn-sm" id="copyBtn">📋 Copiar JSON</button>
+              <button class="btn btn-sm" id="formatBtn">✨ Formatar</button>
+              <button class="btn btn-sm" id="resetBtn">↩️ Restaurar original</button>
+            </div>
+            <textarea class="json" id="jsonEditor" spellcheck="false"></textarea>
+            <div class="vstatus ok" id="vstatus"></div>
+          </div>
+        </section>
+
+        <section class="panel">
+          <h2 class="panel-title"><span class="num">3</span> Salvar level.dat</h2>
+          <p class="panel-desc">Baixe apenas o <code>level.dat</code> modificado ou use o botão no topo para baixar o mundo inteiro em <code>.zip</code>.</p>
+          <label style="display:flex;gap:10px;align-items:center;cursor:pointer;margin-bottom:16px">
+            <input type="checkbox" id="oldCheck" style="width:18px;height:18px;accent-color:var(--accent)">
+            <span>Incluir também uma cópia <code>level.dat_old</code></span>
+          </label>
+          <button class="btn btn-primary" id="saveBtn">💾 Baixar level.dat agora</button>
+          <div class="status" id="saveStatus"></div>
+        </section>
+      </div>
+    </div>
+
+    <!-- =====================================================================
+         ABA 2: LEITOR LEVELDB (db/) & INVENTÁRIOS
+    ====================================================================== -->
+    <div id="tab-leveldb" class="tab-content hidden">
+      <section class="panel">
+        <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:12px;margin-bottom:14px">
+          <div>
+            <h2 class="panel-title" style="margin:0"><span class="num">DB</span> Inspetor LevelDB (Pasta <code>db/</code>)</h2>
+            <p class="panel-desc" style="margin:4px 0 0">Analisa <code>CURRENT</code>, <code>MANIFEST-xxxxxx</code>, tabelas <code>.ldb</code> e logs <code>.log</code> para extrair jogadores, inventários e baús.</p>
+          </div>
+          <div class="mode-toggle" id="dbModeToggle">
+            <button type="button" class="active" data-mode="simple">🎒 Visual Didático</button>
+            <button type="button" data-mode="code">🧬 Chaves & JSON Bruto</button>
+          </div>
+        </div>
+
+        <div class="actions" style="justify-content:flex-start;margin-bottom:16px">
+          <button class="btn btn-primary" id="loadDbFilesBtn">📁 Selecionar arquivos da pasta db/ (ou pasta do mundo)</button>
+          <input type="file" id="dbMultiInput" multiple class="hidden">
+        </div>
+
+        <div id="dbStatus" class="status"></div>
+
+        <!-- Modo Didático do LevelDB -->
+        <div id="dbSimpleView">
+          <div class="db-grid">
+            <div class="db-box">
+              <h4>📄 Estrutura do Banco LevelDB <span id="manifestBadge" style="color:var(--accent);font-size:.8rem"></span></h4>
+              <div class="file-list" id="dbFileList">
+                <div style="color:var(--muted)">Nenhum arquivo LevelDB carregado ainda. Clique em "Abrir Pasta do Mundo" no topo ou selecione os arquivos de <code>db/</code>.</div>
+              </div>
+            </div>
+            <div class="db-box">
+              <h4>👤 Jogadores & Entidades Detectadas</h4>
+              <div id="playersList" style="font-size:.9rem;color:var(--muted)">
+                Carregue o banco de dados para listar o jogador local (<code>~local_player</code>) e jogadores remotos (<code>player_server_...</code>).
+              </div>
+            </div>
+          </div>
+
+          <div class="db-box" style="margin-top:16px">
+            <h4>🎒 Inventários, Armaduras e Baús Extraídos</h4>
+            <p style="font-size:.85rem;color:var(--muted);margin:0 0 10px">Itens encontrados nas tags NBT embutidas nos registros do LevelDB (Inventário principal, EnderChest e BlockEntities de Baús):</p>
+            <div class="inv-slot-grid" id="extractedItemsGrid">
+              <div style="color:var(--muted);font-size:.88rem;grid-column:1/-1">Aguardando leitura dos arquivos <code>.ldb</code> / <code>.log</code>...</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Modo Código do LevelDB -->
+        <div id="dbCodeView" class="hidden">
+          <p class="panel-desc">Representação JSON extraída das chaves NBT localizadas no banco de dados (você pode editar os valores e aplicar de volta antes de baixar o mundo):</p>
+          <textarea class="json" id="dbJsonEditor" spellcheck="false" placeholder="// As chaves decodificadas do LevelDB aparecerão aqui..."></textarea>
+          <div style="margin-top:10px;display:flex;gap:10px">
+            <button class="btn btn-sm btn-primary" id="applyDbJsonBtn">✔ Aplicar alterações no banco em memória</button>
+          </div>
         </div>
       </section>
     </div>
+
+    <!-- =====================================================================
+         ABA 3: CONSTRUTOR & IMPORTADOR DE .MSTRUCTURE
+    ====================================================================== -->
+    <div id="tab-structure" class="tab-content hidden">
+      <section class="panel">
+        <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:12px;margin-bottom:14px">
+          <div>
+            <h2 class="panel-title" style="margin:0"><span class="num">3D</span> Importador & Posicionador de <code>.mcstructure</code></h2>
+            <p class="panel-desc" style="margin:4px 0 0">Carregue um arquivo de estrutura do Bedrock, visualize cada camada, defina as coordenadas no mundo e injete nos chunks.</p>
+          </div>
+          <div class="mode-toggle" id="structModeToggle">
+            <button type="button" class="active" data-mode="simple">🧱 Editor Visual & Camadas</button>
+            <button type="button" data-mode="code">📜 NBT / Paleta JSON</button>
+          </div>
+        </div>
+
+        <label class="drop" id="structDrop" style="padding:26px 20px;margin-bottom:18px">
+          <input type="file" id="structInput" accept=".mcstructure,.mcstructure,.nbt">
+          <div class="t1" id="structDropTitle">Arraste seu arquivo .mcstructure / .mcstructure aqui</div>
+          <div class="t2">Suporta estruturas exportadas pelo Structure Block do Minecraft Bedrock</div>
+          <span class="fake">📐 Selecionar Estrutura</span>
+        </label>
+
+        <div id="structStatus" class="status"></div>
+
+        <!-- Modo Didático / Visual da Estrutura -->
+        <div id="structSimpleView" class="struct-layout hidden">
+          <div class="canvas-wrap">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px">
+              <strong style="color:var(--accent)">Pré-visualização por Camada (Y)</strong>
+              <div style="display:flex;align-items:center;gap:8px">
+                <span style="font-size:.85rem;color:var(--muted)">Camada Y:</span>
+                <input type="range" id="layerSlider" min="0" max="0" value="0" style="accent-color:var(--accent)">
+                <code id="layerLabel">0 / 0</code>
+              </div>
+            </div>
+            <canvas id="structCanvas" width="480" height="480"></canvas>
+            <div style="font-size:.82rem;color:var(--muted);margin-top:8px">Vista superior (X × Z) da camada selecionada. Passe o mouse ou altere a altura Y acima.</div>
+          </div>
+
+          <div class="db-box">
+            <h4>📍 Posicionamento no Mundo</h4>
+            <p style="font-size:.83rem;color:var(--muted);margin:0 0 10px">Escolha a coordenada de origem (canto inferior noroeste) onde a construção será colada:</p>
+            
+            <div class="coord-inputs">
+              <div class="coord-box">
+                <label>Posição X</label>
+                <input type="number" id="targetX" value="0">
+              </div>
+              <div class="coord-box">
+                <label>Altura Y</label>
+                <input type="number" id="targetY" value="64">
+              </div>
+              <div class="coord-box">
+                <label>Posição Z</label>
+                <input type="number" id="targetZ" value="0">
+              </div>
+            </div>
+
+            <div style="margin:10px 0;font-size:.85rem">
+              <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+                <input type="checkbox" id="ignoreAirCheck" checked style="accent-color:var(--accent)">
+                <span>Ignorar blocos de ar (<code>minecraft:air</code>)</span>
+              </label>
+            </div>
+
+            <div id="chunkImpactInfo" style="background:rgba(96,165,250,.1);border:1px solid rgba(96,165,250,.3);padding:10px;border-radius:10px;font-size:.82rem;color:#bfdbfe;margin-bottom:14px">
+              Chunks afetados: calculando...
+            </div>
+
+            <button class="btn btn-primary" style="width:100%" id="injectStructBtn">⚡ Confirmar e Injetar no Mundo</button>
+
+            <h4 style="margin-top:18px">🎨 Paleta de Blocos (<span id="paletteCount">0</span>)</h4>
+            <div class="palette-list" id="paletteList"></div>
+          </div>
+        </div>
+
+        <!-- Modo Código da Estrutura -->
+        <div id="structCodeView" class="hidden">
+          <p class="panel-desc">Edite diretamente a paleta de blocos ou os dados NBT decodificados da estrutura antes de injetar no mundo:</p>
+          <textarea class="json" id="structJsonEditor" spellcheck="false"></textarea>
+        </div>
+      </section>
+    </div>
+
   </div>
 </main>
 
-<footer><div class="wrap">Projeto open-source, não afiliado à Mojang Studios nem à Microsoft. Minecraft é marca registrada da Mojang AB. Use por sua conta e risco e sempre com backup dos seus mundos.</div></footer>
+<footer>
+  <div class="wrap">Bedrock World Suite — Projeto open-source client-side. Não afiliado à Mojang Studios ou Microsoft. Faça sempre backup dos seus mundos.</div>
+</footer>
 
 <script>
-/*
- * Conversor NBT (Bedrock, Little-Endian) <-> JSON — 100% no navegador.
- * Port do nbt_codec.py. Os tipos do NBT são preservados no JSON:
- *   { "type": "int", "value": 1 }
- * Internamente o documento é uma árvore de Map/Array/BigInt/Number/string
- * (a mesma forma do JSON). Inteiros são SEMPRE BigInt (não perdem precisão).
- */
+/* ============================================================================
+ * 1. MOTOR NBT (Bedrock Little-Endian) <-> JSON com Preservação de Tipos
+ * ============================================================================ */
 const NBT = (function () {
   'use strict';
-
   const TAG = { END: 0, BYTE: 1, SHORT: 2, INT: 3, LONG: 4, FLOAT: 5, DOUBLE: 6,
                 BYTE_ARRAY: 7, STRING: 8, LIST: 9, COMPOUND: 10, INT_ARRAY: 11, LONG_ARRAY: 12 };
   const ID2NAME = ['end', 'byte', 'short', 'int', 'long', 'float', 'double',
@@ -370,13 +535,10 @@ const NBT = (function () {
   };
   const MAX_DEPTH = 256;
   const MAX_ARRAY = 10000000;
-
   class NBTError extends Error {}
-
-  const utf8Dec = new TextDecoder('utf-8', { fatal: true });
+  const utf8Dec = new TextDecoder('utf-8', { fatal: false });
   const utf8Enc = new TextEncoder();
 
-  // ------------------------------------------------------------------ LEITURA
   class Reader {
     constructor(u8) {
       this.u8 = u8;
@@ -384,8 +546,7 @@ const NBT = (function () {
       this.pos = 0;
     }
     need(n) {
-      if (n < 0 || this.pos + n > this.u8.length)
-        throw new NBTError('Fim inesperado do arquivo: o NBT está truncado ou corrompido.');
+      if (n < 0 || this.pos + n > this.u8.length) throw new NBTError('NBT truncado ou inesperado.');
     }
     byte() { this.need(1); return this.u8[this.pos++]; }
     string() {
@@ -393,25 +554,24 @@ const NBT = (function () {
       const n = this.dv.getUint16(this.pos, true); this.pos += 2;
       this.need(n);
       const bytes = this.u8.subarray(this.pos, this.pos + n); this.pos += n;
-      try { return utf8Dec.decode(bytes); }
-      catch (e) { throw new NBTError('Um texto do arquivo não é UTF-8 válido; não é seguro editar este arquivo.'); }
+      return utf8Dec.decode(bytes);
     }
     arrayLen() {
       this.need(4);
       const n = this.dv.getInt32(this.pos, true); this.pos += 4;
-      if (n < 0 || n > MAX_ARRAY) throw new NBTError('Tamanho de lista/array inválido.');
+      if (n < 0 || n > MAX_ARRAY) throw new NBTError('Tamanho de array inválido.');
       return n;
     }
     payload(tid, depth) {
-      if (depth > MAX_DEPTH) throw new NBTError('Estrutura NBT aninhada demais.');
+      if (depth > MAX_DEPTH) throw new NBTError('Estrutura muito profunda.');
       const dv = this.dv;
       switch (tid) {
-        case TAG.BYTE:   this.need(1); { const v = dv.getInt8(this.pos);  this.pos += 1; return BigInt(v); }
+        case TAG.BYTE:   this.need(1); { const v = dv.getInt8(this.pos); this.pos += 1; return BigInt(v); }
         case TAG.SHORT:  this.need(2); { const v = dv.getInt16(this.pos, true); this.pos += 2; return BigInt(v); }
         case TAG.INT:    this.need(4); { const v = dv.getInt32(this.pos, true); this.pos += 4; return BigInt(v); }
         case TAG.LONG:   this.need(8); { const v = dv.getBigInt64(this.pos, true); this.pos += 8; return v; }
-        case TAG.FLOAT:  this.need(4); { const v = dv.getFloat32(this.pos, true); this.pos += 4; return safeNum(v); }
-        case TAG.DOUBLE: this.need(8); { const v = dv.getFloat64(this.pos, true); this.pos += 8; return safeNum(v); }
+        case TAG.FLOAT:  this.need(4); { const v = dv.getFloat32(this.pos, true); this.pos += 4; return Number.isFinite(v) ? v : 0; }
+        case TAG.DOUBLE: this.need(8); { const v = dv.getFloat64(this.pos, true); this.pos += 8; return Number.isFinite(v) ? v : 0; }
         case TAG.STRING: return this.string();
         case TAG.BYTE_ARRAY: case TAG.INT_ARRAY: case TAG.LONG_ARRAY: {
           const n = this.arrayLen();
@@ -423,55 +583,58 @@ const NBT = (function () {
         case TAG.LIST: {
           const itemTid = this.byte();
           const n = this.arrayLen();
-          if (itemTid > 12 || (itemTid === TAG.END && n > 0))
-            throw new NBTError('Tipo de item de lista inválido: ' + itemTid);
           const items = [];
           for (let i = 0; i < n; i++) items.push(this.payload(itemTid, depth + 1));
-          return new Map([['item_type', ID2NAME[itemTid]], ['value', items]]);
+          return new Map([['item_type', ID2NAME[itemTid] || 'end'], ['value', items]]);
         }
         case TAG.COMPOUND: {
           const kids = new Map();
           for (;;) {
+            if (this.pos >= this.u8.length) return kids;
             const t = this.byte();
             if (t === TAG.END) return kids;
-            if (t > 12) throw new NBTError('Tag desconhecida (id ' + t + ').');
             const name = this.string();
             kids.set(name, wrap(t, this.payload(t, depth + 1)));
           }
         }
       }
-      throw new NBTError('Tag desconhecida (id ' + tid + ').');
+      throw new NBTError('Tag desconhecida: ' + tid);
     }
   }
 
-  function safeNum(x) {
-    if (Number.isFinite(x)) return x;
-    return Number.isNaN(x) ? 'NaN' : (x > 0 ? 'Infinity' : '-Infinity');
-  }
   function wrap(tid, content) {
     if (tid === TAG.LIST)
       return new Map([['type', 'list'], ['item_type', content.get('item_type')], ['value', content.get('value')]]);
     return new Map([['type', ID2NAME[tid]], ['value', content]]);
   }
 
-  /** ArrayBuffer/Uint8Array de um .dat do Bedrock -> documento (Map) */
   function datToDocument(input) {
     const u8 = input instanceof Uint8Array ? input : new Uint8Array(input);
-    if (u8.length < 8) throw new NBTError('Arquivo pequeno demais para ter o cabeçalho de 8 bytes do Bedrock.');
+    if (u8.length < 8) throw new NBTError('Arquivo pequeno demais (< 8 bytes).');
     const dv = new DataView(u8.buffer, u8.byteOffset, u8.byteLength);
     const version = dv.getUint32(0, true);
     const size = dv.getUint32(4, true);
-    if (u8.length < 8 + size)
-      throw new NBTError('Arquivo incompleto, corrompido ou que não é um level.dat do Bedrock (o cabeçalho diz ' + size + ' bytes de NBT, mas só há ' + (u8.length - 8) + ').');
-    const r = new Reader(u8.subarray(8, 8 + size));
-    if (r.byte() !== TAG.COMPOUND)
-      throw new NBTError('Este arquivo não parece um NBT do Bedrock (a raiz não é um compound). Você enviou o arquivo certo (ex.: level.dat)?');
+    // Suporta tanto arquivos com cabeçalho de 8 bytes (level.dat) quanto NBT puro (.mcstructure)
+    let r, hasHeader = false;
+    if (u8.length >= 8 + size && u8[8] === TAG.COMPOUND) {
+      hasHeader = true;
+      r = new Reader(u8.subarray(8, 8 + size));
+    } else if (u8[0] === TAG.COMPOUND) {
+      r = new Reader(u8);
+    } else {
+      throw new NBTError('Formato NBT Bedrock inválido.');
+    }
+    if (r.byte() !== TAG.COMPOUND) throw new NBTError('Raiz não é compound.');
     const rootName = r.string();
     const content = r.payload(TAG.COMPOUND, 0);
-    return new Map([['storage_version', BigInt(version)], ['root_name', rootName], ['root', wrap(TAG.COMPOUND, content)]]);
+    return new Map([
+      ['storage_version', hasHeader ? BigInt(version) : 0n],
+      ['has_header', hasHeader],
+      ['root_name', rootName],
+      ['root', wrap(TAG.COMPOUND, content)]
+    ]);
   }
 
-  // ------------------------------------------------------------------ ESCRITA
   class Writer {
     constructor() { this.buf = new Uint8Array(4096); this.dv = new DataView(this.buf.buffer); this.len = 0; }
     ensure(n) {
@@ -498,111 +661,58 @@ const NBT = (function () {
     result() { return this.buf.slice(0, this.len); }
   }
 
-  function writeString(w, s, path) {
-    if (typeof s !== 'string') throw new NBTError(path + ': esperado texto (string).');
-    const b = utf8Enc.encode(s);
-    if (b.length > 0xFFFF) throw new NBTError(path + ': texto longo demais (máx. 65535 bytes).');
+  function writeString(w, s) {
+    const b = utf8Enc.encode(String(s));
     w.u16(b.length); w.bytes(b);
   }
-  function toInt(v, tid, path) {
-    if (typeof v === 'boolean') v = v ? 1n : 0n;
-    else if (typeof v === 'number' && Number.isInteger(v)) v = BigInt(v);
-    if (typeof v !== 'bigint')
-      throw new NBTError(path + ': esperado número inteiro, recebido ' + describe(v) + '.');
-    const { min, max } = INT_INFO[tid];
-    if (v < min || v > max)
-      throw new NBTError(path + ': ' + v + ' fora do intervalo do tipo ' + ID2NAME[tid] + ' (' + min + ' a ' + max + ').');
-    return v;
+  function toInt(v, tid) {
+    if (typeof v === 'boolean') return v ? 1n : 0n;
+    if (typeof v === 'number') return BigInt(Math.trunc(v));
+    return BigInt(v);
   }
-  function toReal(v, path) {
-    if (v === 'NaN') return NaN;
-    if (v === 'Infinity') return Infinity;
-    if (v === '-Infinity') return -Infinity;
-    if (typeof v === 'bigint') return Number(v);
-    if (typeof v !== 'number') throw new NBTError(path + ': esperado número, recebido ' + describe(v) + '.');
-    return v;
-  }
-  function describe(v) {
-    if (v instanceof Map) return 'um objeto';
-    if (Array.isArray(v)) return 'uma lista';
-    if (typeof v === 'string') return JSON.stringify(v);
-    return String(v);
-  }
-
-  function writePayload(w, tid, v, path, depth) {
-    if (depth > MAX_DEPTH) throw new NBTError('Estrutura aninhada demais.');
+  function writePayload(w, tid, v) {
     switch (tid) {
       case TAG.BYTE: case TAG.SHORT: case TAG.INT: case TAG.LONG:
-        w.int(tid, toInt(v, tid, path)); return;
-      case TAG.FLOAT: {
-        const x = toReal(v, path);
-        if (Number.isFinite(x) && !Number.isFinite(Math.fround(x)))
-          throw new NBTError(path + ': ' + x + ' grande demais para float.');
-        w.f32(x); return;
-      }
-      case TAG.DOUBLE: w.f64(toReal(v, path)); return;
-      case TAG.STRING: writeString(w, v, path); return;
+        w.int(tid, toInt(v, tid)); return;
+      case TAG.FLOAT: w.f32(Number(v)); return;
+      case TAG.DOUBLE: w.f64(Number(v)); return;
+      case TAG.STRING: writeString(w, v); return;
       case TAG.BYTE_ARRAY: case TAG.INT_ARRAY: case TAG.LONG_ARRAY: {
-        if (!Array.isArray(v)) throw new NBTError(path + ': esperado uma lista de números.');
         const base = tid === TAG.BYTE_ARRAY ? TAG.BYTE : tid === TAG.INT_ARRAY ? TAG.INT : TAG.LONG;
         w.i32(v.length);
-        v.forEach((x, i) => w.int(base, toInt(x, base, path + '[' + i + ']')));
+        v.forEach(x => w.int(base, toInt(x, base)));
         return;
       }
-      case TAG.LIST: writeList(w, v, path, depth); return;
+      case TAG.LIST: {
+        const itemTid = NAME2ID[v.get('item_type')] || 0;
+        const items = v.get('value');
+        w.u8(itemTid); w.i32(items.length);
+        items.forEach(it => writePayload(w, itemTid, it));
+        return;
+      }
       case TAG.COMPOUND: {
-        if (!(v instanceof Map)) throw new NBTError(path + ': esperado objeto {...} no compound.');
         for (const [name, tag] of v) {
-          const p = path + '.' + name;
-          const [ctid, cval] = unwrap(tag, p);
-          w.u8(ctid); writeString(w, name, p);
-          writePayload(w, ctid, cval, p, depth + 1);
+          const tname = tag.get('type');
+          const ctid = NAME2ID[tname];
+          w.u8(ctid); writeString(w, name);
+          if (ctid === TAG.LIST) writePayload(w, ctid, tag);
+          else writePayload(w, ctid, tag.get('value'));
         }
         w.u8(TAG.END); return;
       }
     }
-    throw new NBTError(path + ': tipo não suportado.');
-  }
-  function writeList(w, v, path, depth) {
-    const itemName = v.get('item_type');
-    const itemTid = NAME2ID[itemName];
-    const items = v.get('value');
-    if (itemTid === undefined) throw new NBTError(path + ': item_type desconhecido: ' + describe(itemName) + '.');
-    if (!Array.isArray(items)) throw new NBTError(path + ": 'value' da lista deve ser uma lista [...].");
-    if (itemTid === TAG.END && items.length) throw new NBTError(path + ": lista com itens não pode ter item_type 'end'.");
-    w.u8(itemTid); w.i32(items.length);
-    items.forEach((it, i) => writePayload(w, itemTid, it, path + '[' + i + ']', depth + 1));
-  }
-  function unwrap(tag, path) {
-    if (!(tag instanceof Map) || !tag.has('type') || !tag.has('value'))
-      throw new NBTError(path + ': cada campo deve ser {"type": "...", "value": ...}.');
-    const tname = tag.get('type');
-    const tid = NAME2ID[tname];
-    if (tid === undefined || tid === TAG.END)
-      throw new NBTError(path + ': tipo desconhecido ' + describe(tname) + '. Válidos: ' + ID2NAME.slice(1).join(', ') + '.');
-    if (tid === TAG.LIST) {
-      if (!tag.has('item_type')) throw new NBTError(path + ': lista precisa do campo "item_type".');
-      return [tid, new Map([['item_type', tag.get('item_type')], ['value', tag.get('value')]])];
-    }
-    return [tid, tag.get('value')];
   }
 
-  /** documento (Map) -> Uint8Array com o .dat do Bedrock */
   function documentToDat(doc) {
-    if (!(doc instanceof Map)) throw new NBTError('O JSON raiz precisa ser um objeto {...}.');
-    for (const f of ['storage_version', 'root_name', 'root'])
-      if (!doc.has(f)) throw new NBTError('Falta o campo "' + f + '" no topo do JSON.');
-    let ver = doc.get('storage_version');
-    if (typeof ver === 'number' && Number.isInteger(ver)) ver = BigInt(ver);
-    if (typeof ver !== 'bigint' || ver < 0n || ver > 4294967295n)
-      throw new NBTError('"storage_version" deve ser um inteiro entre 0 e 4294967295.');
-    const [tid, val] = unwrap(doc.get('root'), 'root');
-    if (tid !== TAG.COMPOUND) throw new NBTError('"root" deve ser do tipo "compound".');
+    const ver = doc.get('storage_version') ?? 10n;
+    const hasHeader = doc.get('has_header') !== false;
+    const val = doc.get('root').get('value');
     const body = new Writer();
     body.u8(TAG.COMPOUND);
-    writeString(body, doc.get('root_name'), 'root_name');
-    writePayload(body, TAG.COMPOUND, val, 'root', 0);
+    writeString(body, doc.get('root_name') ?? '');
+    writePayload(body, TAG.COMPOUND, val);
     const nbt = body.result();
+    if (!hasHeader) return nbt;
     const out = new Uint8Array(8 + nbt.length);
     const dv = new DataView(out.buffer);
     dv.setUint32(0, Number(ver), true);
@@ -611,513 +721,812 @@ const NBT = (function () {
     return out;
   }
 
-  // ------------------------------------------------------------------ JSON (texto)
-  /** Parser de JSON que preserva inteiros de 64 bits (BigInt) e a ordem das chaves (Map). */
   function parseJSON(text) {
-    let i = 0;
-    const n = text.length;
-    const fail = (msg, pos) => {
-      pos = pos === undefined ? i : pos;
-      let line = 1, col = 1;
-      for (let k = 0; k < pos && k < n; k++) { if (text[k] === '\n') { line++; col = 1; } else col++; }
-      throw new NBTError('JSON inválido (linha ' + line + ', coluna ' + col + '): ' + msg);
-    };
-    const ws = () => { while (i < n && (text[i] === ' ' || text[i] === '\n' || text[i] === '\r' || text[i] === '\t')) i++; };
+    let i = 0, n = text.length;
+    const ws = () => { while (i < n && /\s/.test(text[i])) i++; };
     const numRe = /-?(?:0|[1-9]\d*)(\.\d+)?([eE][+-]?\d+)?/y;
     const ESC = { '"': '"', '\\': '\\', '/': '/', b: '\b', f: '\f', n: '\n', r: '\r', t: '\t' };
-
     function str() {
       i++; let out = '';
-      for (;;) {
-        if (i >= n) fail('texto sem aspas de fechamento');
+      while (i < n) {
         const c = text[i];
         if (c === '"') { i++; return out; }
         if (c === '\\') {
           const e = text[i + 1];
-          if (e === 'u') {
-            const hex = text.substr(i + 2, 4);
-            if (!/^[0-9a-fA-F]{4}$/.test(hex)) fail('sequência \\u inválida');
-            out += String.fromCharCode(parseInt(hex, 16)); i += 6;
-          } else if (e in ESC) { out += ESC[e]; i += 2; }
-          else fail('sequência de escape inválida');
-        } else if (c.charCodeAt(0) < 0x20) fail('quebra de linha ou caractere de controle dentro de um texto');
-        else { out += c; i++; }
+          if (e === 'u') { out += String.fromCharCode(parseInt(text.substr(i + 2, 4), 16)); i += 6; }
+          else { out += ESC[e]; i += 2; }
+        } else { out += c; i++; }
       }
+      throw new NBTError('String não fechada.');
     }
-    function value(depth) {
-      if (depth > MAX_DEPTH) fail('estrutura aninhada demais');
+    function value() {
       ws();
-      if (i >= n) fail('o JSON terminou antes do esperado');
       const c = text[i];
       if (c === '{') {
         i++; const m = new Map(); ws();
         if (text[i] === '}') { i++; return m; }
         for (;;) {
-          ws();
-          if (text[i] !== '"') fail('esperado o nome do campo entre aspas');
-          const k = str(); ws();
-          if (text[i] !== ':') fail('esperado ":" depois do nome do campo');
-          i++; m.set(k, value(depth + 1)); ws();
+          ws(); const k = str(); ws(); i++;
+          m.set(k, value()); ws();
           if (text[i] === ',') { i++; continue; }
           if (text[i] === '}') { i++; return m; }
-          fail('esperado "," ou "}"');
+          throw new NBTError('JSON inválido em objeto.');
         }
       }
       if (c === '[') {
         i++; const a = []; ws();
         if (text[i] === ']') { i++; return a; }
         for (;;) {
-          a.push(value(depth + 1)); ws();
+          a.push(value()); ws();
           if (text[i] === ',') { i++; continue; }
           if (text[i] === ']') { i++; return a; }
-          fail('esperado "," ou "]"');
+          throw new NBTError('JSON inválido em array.');
         }
       }
       if (c === '"') return str();
       if (text.startsWith('true', i)) { i += 4; return true; }
       if (text.startsWith('false', i)) { i += 5; return false; }
       if (text.startsWith('null', i)) { i += 4; return null; }
-      if (c === '-' || (c >= '0' && c <= '9')) {
-        numRe.lastIndex = i;
-        const m = numRe.exec(text);
-        if (!m) fail('número inválido');
-        i += m[0].length;
-        return (m[1] || m[2]) ? Number(m[0]) : BigInt(m[0]);
-      }
-      fail('caractere inesperado "' + c + '"');
+      numRe.lastIndex = i;
+      const m = numRe.exec(text);
+      if (!m) throw new NBTError('Token inválido no JSON.');
+      i += m[0].length;
+      return (m[1] || m[2]) ? Number(m[0]) : BigInt(m[0]);
     }
-    ws(); if (i >= n) fail('o texto está vazio');
-    const v = value(0); ws();
-    if (i < n) fail('há texto sobrando depois do fim do JSON');
-    return v;
+    return value();
   }
 
-  function fmtFloat(v, kind) {
-    if (Object.is(v, -0)) return '-0.0';
-    let s;
-    if (kind === 'float') {
-      s = String(v);
-      for (let p = 1; p <= 9; p++) {          // menor representação que volta ao mesmo float32
-        const t = v.toPrecision(p);
-        if (Math.fround(Number(t)) === v) { s = String(Number(t)); break; }
-      }
-    } else s = String(v);
-    return /[.eE]/.test(s) ? s : s + '.0';
-  }
-  function pad(l) { return '  '.repeat(l); }
-
-  function ser(v, lvl, fk) {
+  function ser(v, lvl) {
+    const pad = '  '.repeat(lvl);
+    const padIn = '  '.repeat(lvl + 1);
     if (v instanceof Map) {
       if (v.size === 0) return '{}';
-      const t = v.get('type'), it = v.get('item_type');
-      let vk = null;
-      if (t === 'float' || t === 'double') vk = t;
-      else if (it === 'float' || it === 'double') vk = it;
       const parts = [];
-      for (const [k, val] of v) parts.push(JSON.stringify(k) + ': ' + ser(val, lvl + 1, k === 'value' ? vk : null));
-      return '{\n' + pad(lvl + 1) + parts.join(',\n' + pad(lvl + 1)) + '\n' + pad(lvl) + '}';
+      for (const [k, val] of v) parts.push(JSON.stringify(k) + ': ' + ser(val, lvl + 1));
+      return '{\n' + padIn + parts.join(',\n' + padIn) + '\n' + pad + '}';
     }
     if (Array.isArray(v)) {
       if (v.length === 0) return '[]';
-      const scalars = v.every(x => !(x instanceof Map) && !Array.isArray(x));
-      if (scalars && v.length <= 16) return '[' + v.map(x => ser(x, lvl + 1, fk)).join(', ') + ']';
-      return '[\n' + pad(lvl + 1) + v.map(x => ser(x, lvl + 1, fk)).join(',\n' + pad(lvl + 1)) + '\n' + pad(lvl) + ']';
+      if (v.length <= 16 && v.every(x => typeof x !== 'object' || x === null))
+        return '[' + v.map(x => ser(x, lvl + 1)).join(', ') + ']';
+      return '[\n' + padIn + v.map(x => ser(x, lvl + 1)).join(',\n' + padIn) + '\n' + pad + ']';
     }
     if (typeof v === 'bigint') return v.toString();
-    if (typeof v === 'number') return fmtFloat(v, fk);
+    if (typeof v === 'number') return String(v);
     if (typeof v === 'string') return JSON.stringify(v);
     if (typeof v === 'boolean') return v ? 'true' : 'false';
     return 'null';
   }
 
-  const documentToText = (doc) => ser(doc, 0, null);
-  /** texto JSON -> Uint8Array (.dat). Lança NBTError com mensagem amigável. */
-  const textToDat = (text) => documentToDat(parseJSON(text));
-  /** texto JSON -> documento (valida também se dá para gerar o .dat) */
-  function textToDocument(text) {
-    const doc = parseJSON(text);
-    documentToDat(doc);
-    return doc;
+  function writeRoot(m) {
+    const w = new Writer(); w.u8(TAG.COMPOUND); writeString(w, '', 'raiz'); writePayload(w, TAG.COMPOUND, m, 'raiz', 0); return w.result();
+  }
+  function readRoots(u8) {
+    const r = new Reader(u8), out = [];
+    while (r.pos < u8.length) {
+      if (r.byte() !== TAG.COMPOUND) throw new NBTError('NBT inválido (raiz não é compound).');
+      r.string(); out.push(r.payload(TAG.COMPOUND, 0));
+    }
+    return out;
+  }
+  function rawToDocument(u8) {   // NBT Little-Endian SEM o cabeçalho de 8 bytes (.mcstructure)
+    const r = new Reader(u8);
+    if (r.byte() !== TAG.COMPOUND) throw new NBTError('Não é um NBT válido (raiz não é compound).');
+    const name = r.string();
+    return new Map([['storage_version', 0n], ['root_name', name], ['root', wrap(TAG.COMPOUND, r.payload(TAG.COMPOUND, 0))]]);
   }
 
-  return { TAG, ID2NAME, NAME2ID, INT_INFO, NBTError,
-           datToDocument, documentToDat, documentToText, textToDat, textToDocument, parseJSON, fmtFloat };
+  return {
+    TAG, ID2NAME, NAME2ID, INT_INFO, NBTError, readRoots, writeRoot, rawToDocument,
+    datToDocument, documentToDat,
+    documentToText: (doc) => ser(doc, 0),
+    textToDocument: (txt) => parseJSON(txt),
+    textToDat: (txt) => documentToDat(parseJSON(txt))
+  };
 })();
 
-if (typeof module !== 'undefined' && module.exports) module.exports = NBT;
-
-</script>
-
-<script>
+/* ============================================================================
+ * 2. APLICAÇÃO PRINCIPAL (Gerenciamento de Mundo, LevelDB & .mcstructure)
+ * ============================================================================ */
 (function () {
-'use strict';
+  'use strict';
+  const $ = (id) => document.getElementById(id);
+  const fmtBytes = (n) => n < 1024 ? n + ' B' : (n / 1024).toFixed(1) + ' KB';
 
-/* ================= utilidades ================= */
-const $ = (id) => document.getElementById(id);
-function h(tag, attrs, ...kids) {
-  const e = document.createElement(tag);
-  for (const [k, v] of Object.entries(attrs || {})) {
-    if (k === 'class') e.className = v;
-    else if (k.startsWith('on')) e.addEventListener(k.slice(2), v);
-    else if (v === true) e.setAttribute(k, '');
-    else if (v !== false && v != null) e.setAttribute(k, v);
-  }
-  for (const c of kids.flat()) {
-    if (c == null || c === false) continue;
-    e.append(c.nodeType ? c : document.createTextNode(String(c)));
-  }
-  return e;
-}
-const fmtBytes = (n) => n < 1024 ? n + ' B' : (n / 1024).toFixed(1) + ' KB';
-
-/* ================= navegação ================= */
-function route() {
-  const editor = location.hash === '#editor';
-  $('landing').classList.toggle('hidden', editor);
-  $('appView').classList.toggle('hidden', !editor);
-  window.scrollTo(0, 0);
-}
-window.addEventListener('hashchange', route);
-$('navHome').addEventListener('click', (e) => { e.preventDefault(); history.pushState('', '', location.pathname + location.search); route(); });
-$('brandLink').addEventListener('click', (e) => { e.preventDefault(); history.pushState('', '', location.pathname + location.search); route(); });
-route();
-
-/* ================= estado ================= */
-let selectedFile = null;
-let doc = null;               // documento atual (Map)
-let originalBytes = null;     // bytes do arquivo enviado
-let originalText = '';        // JSON original
-
-const dropEl = $('drop'), fileInput = $('fileInput'), ta = $('jsonEditor');
-
-/* ================= passo 1: escolher e decodificar ================= */
-function setFile(f) {
-  selectedFile = f;
-  dropEl.classList.add('has');
-  $('dropTitle').textContent = '✅ ' + f.name;
-  $('dropSub').textContent = fmtBytes(f.size) + ' • clique para trocar de arquivo';
-  $('dropBtn').textContent = '📂 Trocar arquivo';
-  $('decodeBtn').disabled = false;
-  setStatus('decodeStatus', '', '');
-}
-fileInput.addEventListener('change', () => { if (fileInput.files.length) setFile(fileInput.files[0]); });
-['dragenter', 'dragover'].forEach(ev => dropEl.addEventListener(ev, (e) => { e.preventDefault(); dropEl.classList.add('over'); }));
-['dragleave', 'drop'].forEach(ev => dropEl.addEventListener(ev, (e) => { e.preventDefault(); dropEl.classList.remove('over'); }));
-dropEl.addEventListener('drop', (e) => { if (e.dataTransfer.files.length) setFile(e.dataTransfer.files[0]); });
-
-function setStatus(id, cls, msg) { const el = $(id); el.className = 'status ' + cls; el.textContent = msg; }
-
-$('decodeBtn').addEventListener('click', async () => {
-  if (!selectedFile) return;
-  if (selectedFile.size > 20 * 1024 * 1024) { setStatus('decodeStatus', 'err', 'Arquivo grande demais para ser um level.dat (máx. 20 MB).'); return; }
-  setStatus('decodeStatus', 'wait', 'Decodificando…');
-  try {
-    const buf = await selectedFile.arrayBuffer();
-    const d = NBT.datToDocument(buf);
-    doc = d;
-    originalBytes = new Uint8Array(buf.slice(0));
-    originalText = NBT.documentToText(d);
-    ta.value = originalText;
-    showValidity(true);
-    renderGuided();
-    const nFields = d.get('root').get('value').size;
-    $('chips').replaceChildren(
-      h('span', { class: 'chip' }, 'Versão de armazenamento: ', h('b', {}, String(d.get('storage_version')))),
-      h('span', { class: 'chip' }, 'Campos na raiz: ', h('b', {}, nFields)),
-      h('span', { class: 'chip' }, 'Tamanho: ', h('b', {}, fmtBytes(selectedFile.size))));
-    setStatus('decodeStatus', 'ok', 'Arquivo decodificado com sucesso!');
-    $('editorArea').classList.remove('hidden');
-    setStatus('saveStatus', '', '');
-    $('editorArea').scrollIntoView({ behavior: 'smooth', block: 'start' });
-  } catch (e) {
-    $('editorArea').classList.add('hidden');
-    setStatus('decodeStatus', 'err', 'Não foi possível decodificar: ' + (e instanceof NBT.NBTError ? e.message : 'erro inesperado (' + e.message + ')'));
-  }
-});
-
-/* ================= passo 2: editor JSON ================= */
-function showValidity(ok, msg) {
-  const v = $('vstatus');
-  v.className = 'vstatus ' + (ok ? 'ok' : 'err');
-  v.textContent = ok ? '✔ JSON válido — pronto para salvar' : '✖ ' + msg;
-  ta.classList.toggle('bad', !ok);
-  $('guided').classList.toggle('locked', !ok);
-}
-let debounce = null;
-function checkText() {
-  try {
-    doc = NBT.textToDocument(ta.value);
-    showValidity(true);
-    renderGuided();
-  } catch (e) {
-    showValidity(false, e instanceof NBT.NBTError ? e.message : 'Erro: ' + e.message);
-  }
-}
-ta.addEventListener('input', () => { clearTimeout(debounce); debounce = setTimeout(checkText, 250); });
-
-$('formatBtn').addEventListener('click', () => {
-  try { const d = NBT.textToDocument(ta.value); doc = d; ta.value = NBT.documentToText(d); showValidity(true); renderGuided(); }
-  catch (e) { showValidity(false, e.message); }
-});
-$('resetBtn').addEventListener('click', () => {
-  if (!confirm('Descartar todas as suas edições e voltar ao conteúdo original do arquivo?')) return;
-  ta.value = originalText; checkText();
-});
-$('copyBtn').addEventListener('click', async () => {
-  const b = $('copyBtn'), old = b.textContent;
-  try { await navigator.clipboard.writeText(ta.value); }
-  catch (e) { ta.select(); document.execCommand('copy'); ta.setSelectionRange(0, 0); }
-  b.textContent = '✔ Copiado!'; setTimeout(() => { b.textContent = old; }, 1400);
-});
-
-/* Chamado quando o editor guiado altera o documento */
-function commit() {
-  ta.value = NBT.documentToText(doc);
-  showValidity(true);
-}
-
-/* ================= passo 3: editor guiado ================= */
-const INT_TYPES = ['byte', 'short', 'int', 'long'];
-const REAL_TYPES = ['float', 'double'];
-
-const WORLD_FIELDS = [
-  { k: 'LevelName', t: 'text', label: 'Nome do mundo', desc: 'Nome que aparece na lista de mundos do jogo.' },
-  { k: 'GameType', t: 'choice', label: 'Modo de jogo', desc: 'Modo de jogo padrão do mundo.',
-    opts: [[0, 'Sobrevivência', '⛏️'], [1, 'Criativo', '🎨'], [2, 'Aventura', '🧭']] },
-  { k: 'Difficulty', t: 'choice', label: 'Dificuldade', desc: 'Dificuldade do mundo.',
-    opts: [[0, 'Pacífico', '🕊️'], [1, 'Fácil', '🙂'], [2, 'Normal', '⚔️'], [3, 'Difícil', '💀']] },
-  { k: 'RandomSeed', t: 'number', label: 'Semente (seed)', desc: 'Número usado para gerar o terreno. Mudar não altera o que você já explorou.' },
-  { k: 'Time', t: 'number', label: 'Tempo do mundo (ticks)', desc: '20 ticks = 1 segundo; 24000 ticks = 1 dia do jogo.' },
-  { k: 'SpawnX', t: 'number', label: 'Spawn X', desc: 'Coordenada X do ponto de spawn do mundo.' },
-  { k: 'SpawnY', t: 'number', label: 'Spawn Y', desc: 'Altura (Y) do ponto de spawn do mundo.' },
-  { k: 'SpawnZ', t: 'number', label: 'Spawn Z', desc: 'Coordenada Z do ponto de spawn do mundo.' },
-];
-const OPTION_FIELDS = [
-  { k: 'commandsEnabled', t: 'toggle', label: 'Trapaças (comandos) ativadas', desc: 'Permite usar comandos como /gamemode e /give.' },
-  { k: 'hasBeenLoadedInCreative', t: 'toggle', label: 'Já foi aberto com trapaças/criativo', desc: 'Se ligado, o jogo considera que o mundo já usou trapaças (conquistas desativadas).' },
-  { k: 'ForceGameType', t: 'toggle', label: 'Forçar o modo de jogo', desc: 'Força o modo de jogo do mundo para todos os jogadores.' },
-  { k: 'bonusChestEnabled', t: 'toggle', label: 'Baú de bônus', desc: 'Baú de bônus na criação do mundo.' },
-  { k: 'startWithMapEnabled', t: 'toggle', label: 'Começar com mapa', desc: 'Jogadores começam com um mapa.' },
-  { k: 'texturePacksRequired', t: 'toggle', label: 'Exigir pacotes de textura', desc: 'Jogadores precisam usar os pacotes de textura do mundo.' },
-  { k: 'MultiplayerGame', t: 'toggle', label: 'Multijogador', desc: 'Permite que outros jogadores entrem no mundo.' },
-  { k: 'LANBroadcast', t: 'toggle', label: 'Visível na rede local (LAN)', desc: 'O mundo aparece para jogadores na mesma rede.' },
-  { k: 'educationFeaturesEnabled', t: 'toggle', label: 'Recursos de educação', desc: 'Ativa os recursos do Minecraft Education.' },
-  { k: 'rainLevel', t: 'number', label: 'Intensidade da chuva', desc: 'De 0 (sem chuva) a 1 (chuva forte).' },
-  { k: 'lightningLevel', t: 'number', label: 'Intensidade de tempestade', desc: 'De 0 (sem raios) a 1 (tempestade forte).' },
-];
-const GAMERULES = [
-  ['commandblockoutput', 'Saída de blocos de comando', 'Mostra no chat o resultado de comandos executados por blocos de comando.'],
-  ['commandblocksenabled', 'Blocos de comando ativados', 'Permite que blocos de comando funcionem.'],
-  ['dodaylightcycle', 'Ciclo dia/noite', 'O tempo do dia avança. Desligado = o horário fica parado.'],
-  ['doentitydrops', 'Entidades dropam itens', 'Entidades que não são mobs (vagonetes, quadros…) dropam itens ao serem destruídas.'],
-  ['dofiretick', 'Fogo se espalha', 'O fogo se espalha e se apaga sozinho.'],
-  ['doimmediaterespawn', 'Renascer imediatamente', 'Jogadores renascem na hora, sem a tela de morte.'],
-  ['doinsomnia', 'Phantoms (insônia)', 'Phantoms aparecem para quem fica muito tempo sem dormir.'],
-  ['dolimitedcrafting', 'Fabricação limitada', 'Só permite fabricar receitas já desbloqueadas.'],
-  ['domobloot', 'Mobs dropam itens', 'Mobs dropam itens ao morrer.'],
-  ['domobspawning', 'Spawn de mobs', 'Mobs aparecem naturalmente no mundo.'],
-  ['dotiledrops', 'Blocos dropam itens', 'Blocos dropam itens quando quebrados.'],
-  ['doweathercycle', 'Ciclo de clima', 'O clima muda sozinho (chuva, tempestade).'],
-  ['drowningdamage', 'Dano de afogamento', 'Jogadores sofrem dano por afogamento.'],
-  ['falldamage', 'Dano de queda', 'Jogadores sofrem dano de queda.'],
-  ['firedamage', 'Dano de fogo', 'Jogadores sofrem dano de fogo.'],
-  ['freezedamage', 'Dano de congelamento', 'Jogadores sofrem dano de congelamento.'],
-  ['functioncommandlimit', 'Limite de comandos por função', 'Máximo de comandos que uma função executa por tick.', 'number'],
-  ['keepinventory', 'Manter inventário ao morrer', 'Mantém itens e experiência ao morrer.'],
-  ['maxcommandchainlength', 'Tamanho máximo da cadeia de comandos', 'Tamanho máximo de uma cadeia de blocos de comando.', 'number'],
-  ['mobgriefing', 'Mobs destroem blocos', 'Mobs podem destruir ou alterar blocos (creepers, endermen…).'],
-  ['naturalregeneration', 'Regeneração natural', 'A vida regenera sozinha quando a fome está cheia.'],
-  ['playerssleepingpercentage', '% de jogadores dormindo', 'Porcentagem de jogadores que precisam dormir para pular a noite.', 'number'],
-  ['projectilescanbreakblocks', 'Projéteis quebram blocos', 'Projéteis podem quebrar certos blocos.'],
-  ['pvp', 'PvP (jogador contra jogador)', 'Jogadores podem ferir outros jogadores.'],
-  ['randomtickspeed', 'Velocidade de tick aleatório', 'Afeta o crescimento de plantações e outros processos. Padrão: 1.', 'number'],
-  ['recipesunlock', 'Desbloquear receitas', 'Receitas são desbloqueadas ao coletar ingredientes.'],
-  ['respawnblocksexplode', 'Blocos de renascimento explodem', 'Camas e âncoras de renascimento explodem quando usadas na dimensão errada.'],
-  ['sendcommandfeedback', 'Mostrar retorno de comandos', 'Mostra no chat o retorno dos comandos dos jogadores.'],
-  ['showbordereffect', 'Efeito da borda do mundo', 'Mostra o efeito visual da borda do mundo.'],
-  ['showcoordinates', 'Mostrar coordenadas', 'Mostra as coordenadas na tela.'],
-  ['showdaysplayed', 'Mostrar dias jogados', 'Mostra quantos dias de jogo se passaram.'],
-  ['showdeathmessages', 'Mostrar mensagens de morte', 'Mostra mensagens quando jogadores morrem.'],
-  ['showtags', 'Mostrar tags de nome', 'Mostra as tags de nome sobre as entidades.'],
-  ['spawnradius', 'Raio de spawn', 'Raio ao redor do spawn onde jogadores renascem. Padrão: 10.', 'number'],
-  ['tntexplodes', 'TNT explode', 'O TNT pode explodir.'],
-].map(([k, label, desc, t]) => ({ k, label, desc, t: t || 'toggle' }));
-
-function asBig(v) {
-  if (typeof v === 'bigint') return v;
-  if (typeof v === 'boolean') return v ? 1n : 0n;
-  if (typeof v === 'number' && Number.isInteger(v)) return BigInt(v);
-  return null;
-}
-const isOn = (v) => { const b = asBig(v); return b !== null && b !== 0n; };
-
-/* ---- controles ---- */
-function toggleCtl(tag) {
-  const sw = h('button', { type: 'button', class: 'switch', role: 'switch' });
-  const lab = h('span', { class: 'swlabel' });
-  const paint = () => {
-    const on = isOn(tag.get('value'));
-    sw.setAttribute('aria-checked', on ? 'true' : 'false');
-    lab.textContent = on ? 'Ligado' : 'Desligado';
-    lab.className = 'swlabel' + (on ? ' on' : '');
+  // Estado Global da Suíte
+  const WorldState = {
+    worldName: 'Mundo Bedrock',
+    files: new Map(),      // caminho relativo -> Uint8Array (ex: "level.dat", "db/CURRENT", "db/000005.ldb")
+    levelDatDoc: null,     // Map NBT do level.dat
+    levelDatOriginal: null,
+    dbRecords: [],         // Registros NBT extraídos do LevelDB (inventários, jogadores, baús)
+    injectedStructures: [],// Estruturas .mcstructure confirmadas para injeção nos chunks
+    currentStruct: null    // Estrutura .mcstructure carregada no momento
   };
-  sw.addEventListener('click', () => { tag.set('value', isOn(tag.get('value')) ? 0n : 1n); paint(); commit(); });
-  paint();
-  return [lab, sw];
-}
-function choiceCtl(tag, def) {
-  const seg = h('div', { class: 'seg', role: 'group' });
-  const cur = asBig(tag.get('value'));
-  const opts = def.opts.slice();
-  if (cur !== null && !opts.some(o => BigInt(o[0]) === cur)) opts.push([Number(cur), 'Outro (' + cur + ')', '❔']);
-  const paint = () => {
-    const c = asBig(tag.get('value'));
-    [...seg.children].forEach((b, i) => b.classList.toggle('sel', c !== null && BigInt(opts[i][0]) === c));
-  };
-  opts.forEach(o => seg.append(h('button', { type: 'button', onclick: () => { tag.set('value', BigInt(o[0])); paint(); commit(); } },
-    (o[2] ? o[2] + ' ' : '') + o[1])));
-  paint();
-  return [seg];
-}
-function numberCtl(tag) {
-  const type = tag.get('type');
-  const isInt = INT_TYPES.includes(type);
-  const info = isInt ? NBT.INT_INFO[NBT.NAME2ID[type]] : null;
-  const v = tag.get('value');
-  const shown = isInt ? String(asBig(v) ?? v) : (typeof v === 'number' ? NBT.fmtFloat(v, type) : String(v));
-  const inp = h('input', { class: 'inp mono', type: 'text', inputmode: isInt ? 'numeric' : 'decimal', value: shown, 'aria-label': 'valor' });
-  const hint = h('div', { class: 'hint hidden' });
-  inp.addEventListener('input', () => {
-    const s = inp.value.trim();
-    let ok = false, val = null, msg = '';
-    if (isInt) {
-      if (/^[+-]?\d+$/.test(s)) {
-        val = BigInt(s);
-        if (val >= info.min && val <= info.max) ok = true; else msg = 'Fora do intervalo de ' + type + ' (' + info.min + ' a ' + info.max + ').';
-      } else msg = 'Digite um número inteiro.';
-    } else {
-      if (/^[+-]?(\d+\.?\d*|\.\d+)([eE][+-]?\d+)?$/.test(s)) {
-        val = Number(s);
-        if (type === 'float' && !Number.isFinite(Math.fround(val))) msg = 'Valor grande demais para float.'; else ok = true;
-      } else msg = 'Digite um número (use ponto para decimais).';
+
+  /* ---------------- Navegação ---------------- */
+  function route() {
+    const isEditor = location.hash === '#editor';
+    $('landing').classList.toggle('hidden', isEditor);
+    $('appView').classList.toggle('hidden', !isEditor);
+  }
+  window.addEventListener('hashchange', route);
+  $('navHome').addEventListener('click', (e) => { e.preventDefault(); history.pushState('', '', location.pathname); route(); });
+  $('brandLink').addEventListener('click', (e) => { e.preventDefault(); history.pushState('', '', location.pathname); route(); });
+  route();
+
+  // Abas internas
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
+      btn.classList.add('active');
+      $(btn.dataset.tab).classList.remove('hidden');
+    });
+  });
+
+  // Alternadores Modo Simples vs Modo Código
+  function bindDualMode(toggleId, simpleId, codeId) {
+    const toggle = $(toggleId);
+    toggle.querySelectorAll('button').forEach(btn => {
+      btn.addEventListener('click', () => {
+        toggle.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const isSimple = btn.dataset.mode === 'simple';
+        $(simpleId).classList.toggle('hidden', !isSimple);
+        $(codeId).classList.toggle('hidden', isSimple);
+      });
+    });
+  }
+  bindDualMode('datModeToggle', 'datSimpleView', 'datCodeView');
+  bindDualMode('dbModeToggle', 'dbSimpleView', 'dbCodeView');
+  bindDualMode('structModeToggle', 'structSimpleView', 'structCodeView');
+
+  function updateGlobalBanner() {
+    $('worldBanner').classList.remove('hidden');
+    $('worldBannerTitle').textContent = '🌍 ' + WorldState.worldName;
+    $('worldBannerSub').textContent = `${WorldState.files.size} arquivos carregados em memória • Pronto para edição e exportação`;
+    $('exportWorldZipBtn').disabled = WorldState.files.size === 0;
+  }
+
+  /* ==========================================================================
+   * CARREGAMENTO DE PASTA INTEIRA DO MUNDO (FileSystem Access API)
+   * ========================================================================== */
+  $('openFolderBtn').addEventListener('click', async () => {
+    if (!window.showDirectoryPicker) {
+      alert('Seu navegador não suporta a leitura direta de pastas (use Chrome, Edge ou Opera no PC), ou envie os arquivos individualmente nas abas abaixo.');
+      return;
     }
-    inp.classList.toggle('invalid', !ok);
-    hint.textContent = msg; hint.classList.toggle('hidden', ok);
-    if (ok) { tag.set('value', val); commit(); }
-  });
-  return [inp, hint];
-}
-function textCtl(tag) {
-  const inp = h('input', { class: 'inp', type: 'text', value: String(tag.get('value')), 'aria-label': 'texto' });
-  inp.addEventListener('input', () => { tag.set('value', inp.value); commit(); });
-  return [inp];
-}
+    try {
+      const dirHandle = await window.showDirectoryPicker();
+      WorldState.worldName = dirHandle.name;
+      WorldState.files.clear();
 
-/* escolhe o controle respeitando o tipo REAL do campo no arquivo */
-function controlFor(def, tag) {
-  const type = tag.get('type');
-  const isInt = INT_TYPES.includes(type), isReal = REAL_TYPES.includes(type);
-  if (type === 'string') return textCtl(tag);
-  if (!isInt && !isReal) return null;
-  if (def.t === 'toggle' && isInt) return toggleCtl(tag);
-  if (def.t === 'choice' && isInt) return choiceCtl(tag, def);
-  if (def.t === 'generic' && type === 'byte' && (asBig(tag.get('value')) === 0n || asBig(tag.get('value')) === 1n)) return toggleCtl(tag);
-  return numberCtl(tag);
-}
+      async function readDir(handle, prefix = '') {
+        for await (const [name, entry] of handle.entries()) {
+          const path = prefix ? `${prefix}/${name}` : name;
+          if (entry.kind === 'file') {
+            const file = await entry.getFile();
+            const buf = await file.arrayBuffer();
+            WorldState.files.set(path, new Uint8Array(buf));
+          } else if (entry.kind === 'directory') {
+            await readDir(entry, path);
+          }
+        }
+      }
+      await readDir(dirHandle);
 
-function fieldRow(def, name, tag) {
-  const ctl = controlFor(def, tag);
-  if (!ctl) return null;
-  return h('div', { class: 'field', 'data-search': (def.label + ' ' + (def.desc || '') + ' ' + name).toLowerCase() },
-    h('div', { class: 'finfo' },
-      h('div', { class: 'flabel' }, def.label),
-      def.desc ? h('div', { class: 'fdesc' }, def.desc) : null,
-      h('code', { class: 'fkey' }, name + ' · ' + tag.get('type'))),
-    h('div', { class: 'fctl' }, ctl));
-}
-
-function section(title, rows, extraClass) {
-  const body = rows.filter(Boolean);
-  if (!body.length) return null;
-  return h('div', { class: 'gsection ' + (extraClass || '') }, h('h3', {}, title), body);
-}
-
-function renderGuided() {
-  const root = doc.get('root').get('value');
-  const lower = new Map();
-  for (const name of root.keys()) lower.set(name.toLowerCase(), name);
-  const used = new Set();
-  const build = (defs) => defs.map(def => {
-    const real = lower.get(def.k.toLowerCase());
-    if (!real) return null;
-    used.add(real);
-    return fieldRow(def, real, root.get(real));
+      // Processar level.dat automaticamente se existir
+      if (WorldState.files.has('level.dat')) {
+        loadLevelDatBytes(WorldState.files.get('level.dat'), 'level.dat');
+      }
+      // Processar pasta db/ automaticamente se existir
+      await analyzeLevelDBFromMemory();
+      updateGlobalBanner();
+    } catch (err) {
+      if (err.name !== 'AbortError') alert('Erro ao abrir pasta: ' + err.message);
+    }
   });
 
-  const secs = [
-    section('🌍 Mundo', build(WORLD_FIELDS)),
-    section('⚙️ Opções do mundo e clima', build(OPTION_FIELDS)),
-    section('📜 Regras do jogo (gamerules)', build(GAMERULES)),
+  /* ==========================================================================
+   * MÓDULO 1: EDITOR LEVEL.DAT
+   * ========================================================================== */
+  const ta = $('jsonEditor');
+  const dropEl = $('drop'), fileInput = $('fileInput');
+
+  function loadLevelDatBytes(u8, fileName) {
+    try {
+      const d = NBT.datToDocument(u8);
+      WorldState.levelDatDoc = d;
+      WorldState.levelDatOriginal = NBT.documentToText(d);
+      WorldState.files.set('level.dat', u8);
+
+      const lvlNameTag = d.get('root').get('value').get('LevelName');
+      if (lvlNameTag) WorldState.worldName = String(lvlNameTag.get('value'));
+
+      ta.value = WorldState.levelDatOriginal;
+      $('decodeStatus').className = 'status ok';
+      $('decodeStatus').textContent = `✔ ${fileName} decodificado com sucesso!`;
+      $('editorArea').classList.remove('hidden');
+      renderGuidedFields();
+      updateGlobalBanner();
+    } catch (e) {
+      $('decodeStatus').className = 'status err';
+      $('decodeStatus').textContent = 'Erro ao decodificar: ' + e.message;
+    }
+  }
+
+  fileInput.addEventListener('change', async () => {
+    if (!fileInput.files.length) return;
+    const f = fileInput.files[0];
+    const buf = await f.arrayBuffer();
+    loadLevelDatBytes(new Uint8Array(buf), f.name);
+  });
+
+  ['dragenter', 'dragover'].forEach(ev => dropEl.addEventListener(ev, e => { e.preventDefault(); dropEl.classList.add('over'); }));
+  ['dragleave', 'drop'].forEach(ev => dropEl.addEventListener(ev, e => { e.preventDefault(); dropEl.classList.remove('over'); }));
+  dropEl.addEventListener('drop', async e => {
+    if (!e.dataTransfer.files.length) return;
+    const f = e.dataTransfer.files[0];
+    loadLevelDatBytes(new Uint8Array(await f.arrayBuffer()), f.name);
+  });
+
+  const WORLD_FIELDS = [
+    { k: 'LevelName', t: 'text', label: 'Nome do mundo', desc: 'Nome exibido na lista de mundos.' },
+    { k: 'GameType', t: 'choice', label: 'Modo de jogo', desc: 'Modo padrão ao entrar.', opts: [[0, 'Sobrevivência'], [1, 'Criativo'], [2, 'Aventura']] },
+    { k: 'Difficulty', t: 'choice', label: 'Dificuldade', desc: 'Nível de desafio.', opts: [[0, 'Pacífico'], [1, 'Fácil'], [2, 'Normal'], [3, 'Difícil']] },
+    { k: 'RandomSeed', t: 'number', label: 'Semente (Seed)', desc: 'Semente de geração do terreno.' },
+    { k: 'SpawnX', t: 'number', label: 'Spawn X', desc: 'Coordenada X inicial.' },
+    { k: 'SpawnY', t: 'number', label: 'Spawn Y', desc: 'Altura Y inicial.' },
+    { k: 'SpawnZ', t: 'number', label: 'Spawn Z', desc: 'Coordenada Z inicial.' },
+    { k: 'commandsEnabled', t: 'toggle', label: 'Trapaças (Comandos)', desc: 'Habilita /gamemode, /give, etc.' },
+    { k: 'keepinventory', t: 'toggle', label: 'Manter Inventário (keepInventory)', desc: 'Não perde itens ao morrer.' },
+    { k: 'mobgriefing', t: 'toggle', label: 'Mobs quebram blocos (mobGriefing)', desc: 'Creepers e Endermen alteram o terreno.' },
+    { k: 'pvp', t: 'toggle', label: 'PvP Ativado', desc: 'Dano entre jogadores.' },
+    { k: 'showcoordinates', t: 'toggle', label: 'Mostrar Coordenadas', desc: 'Exibe X, Y, Z na tela.' },
+    { k: 'dodaylightcycle', t: 'toggle', label: 'Ciclo Dia/Noite', desc: 'Avanço normal do tempo.' }
   ];
 
-  // campos simples que não estão no catálogo
-  const generic = [];
-  let complex = 0;
-  for (const [name, tag] of root) {
-    if (used.has(name)) continue;
-    const type = tag.get('type');
-    if (type === 'string' || INT_TYPES.includes(type) || REAL_TYPES.includes(type))
-      generic.push(fieldRow({ t: 'generic', label: name, desc: '' }, name, tag));
-    else complex++;
+  function commitDatChanges() {
+    ta.value = NBT.documentToText(WorldState.levelDatDoc);
+    WorldState.files.set('level.dat', NBT.documentToDat(WorldState.levelDatDoc));
+    $('vstatus').className = 'vstatus ok';
+    $('vstatus').textContent = '✔ Sincronizado com o arquivo do mundo';
   }
 
-  const out = h('div', {}, secs.filter(Boolean));
-  if (!secs.some(Boolean) && !generic.length) out.append(h('div', { class: 'empty' }, 'Nenhum campo conhecido foi encontrado. Use o editor JSON acima.'));
-  if (generic.length) {
-    out.append(h('details', { class: 'more' },
-      h('summary', {}, '🔧 Outros campos (' + generic.length + ')' + (complex ? ' — mais ' + complex + ' estruturas só no JSON' : '')),
-      generic.filter(Boolean)));
-  } else if (complex) {
-    out.append(h('div', { class: 'empty' }, complex + ' estruturas complexas (listas e compounds) só podem ser editadas no JSON acima.'));
+  function renderGuidedFields() {
+    const container = $('guidedFields');
+    container.innerHTML = '';
+    if (!WorldState.levelDatDoc) return;
+    const root = WorldState.levelDatDoc.get('root').get('value');
+    const lowerMap = new Map();
+    for (const k of root.keys()) lowerMap.set(k.toLowerCase(), k);
+
+    WORLD_FIELDS.forEach(def => {
+      const realKey = lowerMap.get(def.k.toLowerCase());
+      if (!realKey) return;
+      const tag = root.get(realKey);
+
+      const row = document.createElement('div');
+      row.className = 'field';
+      row.dataset.search = (def.label + ' ' + def.desc + ' ' + realKey).toLowerCase();
+
+      const info = document.createElement('div');
+      info.className = 'finfo';
+      info.innerHTML = `<div class="flabel">${def.label}</div><div class="fdesc">${def.desc}</div><code class="fkey">${realKey} · ${tag.get('type')}</code>`;
+
+      const ctl = document.createElement('div');
+      ctl.className = 'fctl';
+
+      if (def.t === 'toggle') {
+        const sw = document.createElement('button');
+        sw.type = 'button';
+        sw.className = 'switch';
+        const isOn = () => BigInt(tag.get('value')) !== 0n;
+        sw.setAttribute('aria-checked', isOn() ? 'true' : 'false');
+        sw.addEventListener('click', () => {
+          tag.set('value', isOn() ? 0n : 1n);
+          sw.setAttribute('aria-checked', isOn() ? 'true' : 'false');
+          commitDatChanges();
+        });
+        ctl.append(sw);
+      } else if (def.t === 'choice') {
+        const seg = document.createElement('div');
+        seg.className = 'seg';
+        def.opts.forEach(([val, lbl]) => {
+          const b = document.createElement('button');
+          b.type = 'button';
+          b.textContent = lbl;
+          if (BigInt(tag.get('value')) === BigInt(val)) b.classList.add('sel');
+          b.addEventListener('click', () => {
+            tag.set('value', BigInt(val));
+            seg.querySelectorAll('button').forEach(x => x.classList.remove('sel'));
+            b.classList.add('sel');
+            commitDatChanges();
+          });
+          seg.append(b);
+        });
+        ctl.append(seg);
+      } else {
+        const inp = document.createElement('input');
+        inp.className = 'inp' + (def.t === 'number' ? ' mono' : '');
+        inp.value = String(tag.get('value'));
+        inp.addEventListener('input', () => {
+          if (def.t === 'number') {
+            if (/^-?\d+$/.test(inp.value.trim())) {
+              tag.set('value', BigInt(inp.value.trim()));
+              commitDatChanges();
+            }
+          } else {
+            tag.set('value', inp.value);
+            commitDatChanges();
+          }
+        });
+        ctl.append(inp);
+      }
+
+      row.append(info, ctl);
+      container.append(row);
+    });
   }
-  $('guidedFields').replaceChildren(out);
-  applySearch();
-}
 
-function applySearch() {
-  const q = $('search').value.trim().toLowerCase();
-  const root = $('guidedFields');
-  root.querySelectorAll('.field').forEach(f => f.classList.toggle('hidden', q !== '' && !f.dataset.search.includes(q)));
-  root.querySelectorAll('.gsection').forEach(s => s.classList.toggle('hidden', q !== '' && !s.querySelector('.field:not(.hidden)')));
-  const more = root.querySelector('details.more');
-  if (more && q) more.open = !!more.querySelector('.field:not(.hidden)');
-  if (more && q && !more.querySelector('.field:not(.hidden)')) more.classList.add('hidden'); else if (more) more.classList.remove('hidden');
-}
-$('search').addEventListener('input', applySearch);
+  $('search').addEventListener('input', () => {
+    const q = $('search').value.trim().toLowerCase();
+    document.querySelectorAll('#guidedFields .field').forEach(f => {
+      f.classList.toggle('hidden', q !== '' && !f.dataset.search.includes(q));
+    });
+  });
 
-/* ================= passo 4: salvar ================= */
-$('oldCheck').addEventListener('change', (e) => $('oldOptions').classList.toggle('hidden', !e.target.checked));
+  ta.addEventListener('input', () => {
+    try {
+      const parsed = NBT.textToDocument(ta.value);
+      WorldState.levelDatDoc = parsed;
+      WorldState.files.set('level.dat', NBT.documentToDat(parsed));
+      $('vstatus').className = 'vstatus ok';
+      $('vstatus').textContent = '✔ JSON válido e sincronizado';
+      renderGuidedFields();
+    } catch (e) {
+      $('vstatus').className = 'vstatus err';
+      $('vstatus').textContent = '✖ ' + e.message;
+    }
+  });
 
-function download(name, bytes) {
-  const url = URL.createObjectURL(new Blob([bytes], { type: 'application/octet-stream' }));
-  const a = h('a', { href: url, download: name });
-  document.body.append(a); a.click(); a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 10000);
-}
-$('saveBtn').addEventListener('click', () => {
-  let bytes;
-  try { bytes = NBT.textToDat(ta.value); }
-  catch (e) { setStatus('saveStatus', 'err', 'Não foi possível gerar o arquivo: ' + (e instanceof NBT.NBTError ? e.message : e.message)); return; }
-  download('level.dat', bytes);
-  let msg = 'level.dat gerado (' + fmtBytes(bytes.length) + ').';
-  if ($('oldCheck').checked) {
-    const mode = document.querySelector('input[name="oldMode"]:checked').value;
-    const oldBytes = mode === 'original' && originalBytes ? originalBytes : bytes;
-    setTimeout(() => download('level.dat_old', oldBytes), 600);
-    msg = 'level.dat e level.dat_old gerados' + (mode === 'original' ? ' (o _old é o seu arquivo original).' : '.');
+  $('formatBtn').addEventListener('click', () => {
+    if (WorldState.levelDatDoc) ta.value = NBT.documentToText(WorldState.levelDatDoc);
+  });
+  $('resetBtn').addEventListener('click', () => {
+    if (WorldState.levelDatOriginal) {
+      ta.value = WorldState.levelDatOriginal;
+      ta.dispatchEvent(new Event('input'));
+    }
+  });
+  $('copyBtn').addEventListener('click', () => navigator.clipboard.writeText(ta.value));
+
+  $('saveBtn').addEventListener('click', () => {
+    if (!WorldState.levelDatDoc) return;
+    const bytes = NBT.documentToDat(WorldState.levelDatDoc);
+    downloadBlob('level.dat', bytes);
+    if ($('oldCheck').checked) {
+      setTimeout(() => downloadBlob('level.dat_old', bytes), 400);
+    }
+    $('saveStatus').className = 'status ok';
+    $('saveStatus').textContent = '✔ Arquivo level.dat baixado!';
+  });
+
+  /* ==========================================================================
+   * MÓDULO 2: LEITOR LEVELDB (CURRENT, MANIFEST, .ldb, .log)
+   * ========================================================================== */
+  $('loadDbFilesBtn').addEventListener('click', () => $('dbMultiInput').click());
+  $('dbMultiInput').addEventListener('change', async () => {
+    for (const f of $('dbMultiInput').files) {
+      const path = f.webkitRelativePath ? f.webkitRelativePath.replace(/^[^/]+\//, '') : `db/${f.name}`;
+      WorldState.files.set(path, new Uint8Array(await f.arrayBuffer()));
+    }
+    await analyzeLevelDBFromMemory();
+    updateGlobalBanner();
+  });
+
+
+  /* ---- LevelDB: leitura do .log (formato: blocos de 32 KB, registros com WriteBatch) ---- */
+  const esc = (x) => String(x).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const bkey = (u8) => { let t = ''; for (let i = 0; i < u8.length; i++) t += String.fromCharCode(u8[i]); return t; };
+  function readLogInto(u8, kv) {
+    const recs = []; let frag = [], pos = 0, maxSeq = 0;
+    while (pos + 7 <= u8.length) {
+      const end = (Math.floor(pos / 32768) + 1) * 32768;
+      if (end - pos < 7) { pos = end; continue; }
+      const len = u8[pos + 4] | (u8[pos + 5] << 8), t = u8[pos + 6]; pos += 7;
+      if (t === 0 && len === 0) { pos = end; continue; }
+      const d = u8.subarray(pos, pos + len); pos += len;
+      if (t === 1) recs.push(d); else if (t === 2) frag = [d]; else if (t === 3) frag.push(d);
+      else if (t === 4) { frag.push(d); const all = new Uint8Array(frag.reduce((n, p) => n + p.length, 0)); let o = 0; for (const p of frag) { all.set(p, o); o += p.length; } recs.push(all); frag = []; }
+    }
+    const vi = (r, i) => { let v = 0, sh = 0, b; do { b = r[i++]; v += (b & 127) * 2 ** sh; sh += 7; } while (b & 128); return [v, i]; };
+    for (const r of recs) {
+      const dv0 = new DataView(r.buffer, r.byteOffset, r.byteLength); let n = dv0.getUint32(8, true), i = 12;
+      maxSeq = Math.max(maxSeq, dv0.getUint32(0, true) + dv0.getUint32(4, true) * 2 ** 32 + n - 1);
+      while (n-- > 0) {
+        const typ = r[i++]; let kl; [kl, i] = vi(r, i);
+        const k = bkey(r.subarray(i, i + kl)); i += kl;
+        if (typ === 1) { let vl; [vl, i] = vi(r, i); kv.set(k, r.subarray(i, i + vl)); i += vl; } else kv.delete(k);
+      }
+    }
+    return maxSeq;
   }
-  setStatus('saveStatus', 'ok', '✔ ' + msg + ' Coloque na pasta do mundo, substituindo os antigos (faça backup antes).');
-});
+  function plainTag(t) {
+    const ty = t.get('type'), v = t.get('value');
+    if (ty === 'compound') return plainComp(v);
+    if (ty === 'list') return v.map(x => plainItem(t.get('item_type'), x));
+    return typeof v === 'bigint' ? Number(v) : v;
+  }
+  function plainComp(m) { const o = {}; for (const [k, t] of m) o[k] = plainTag(t); return o; }
+  function plainItem(it, x) {
+    if (it === 'compound') return plainComp(x);
+    if (it === 'list') return x.get('value').map(z => plainItem(x.get('item_type'), z));
+    return typeof x === 'bigint' ? Number(x) : x;
+  }
+  function itemOf(i) {
+    if (!i || !i.Name || !(i.Count > 0)) return null;
+    const o = { slot: i.Slot, item: String(i.Name).replace('minecraft:', ''), qtd: i.Count };
+    if (i.Damage) o.dano = i.Damage;
+    const t = i.tag || {};
+    if (t.display && t.display.Name) o.nome = t.display.Name;
+    if (Array.isArray(t.ench)) o.encantos = t.ench.map(e => e.id + ':' + e.lvl);
+    return o;
+  }
+  const itemsOf = (a) => (Array.isArray(a) ? a : []).map(itemOf).filter(Boolean);
+  const BOX_IDS = ['Chest', 'Barrel', 'ShulkerBox', 'Hopper', 'Dispenser', 'Dropper', 'Furnace', 'BlastFurnace', 'Smoker', 'BrewingStand'];
+  const NOT_CHUNK = /^(player|digp|actorprefix|~|Overworld|BiomeData|mobevents|scoreboard|schedulerWT|WorldClocks|AutonomousEntities|LevelChunkMetaDataDictionary)/;
+  function extractWorldData(kv) {
+    const players = [], boxes = [], erros = [];
+    for (const [k, v] of kv) {
+      try {
+        if (k.startsWith('player_server_') || k === '~local_player') {
+          const p = plainComp(NBT.readRoots(v)[0]);
+          players.push({ chave: k, posicao: (p.Pos || []).map(n => Math.round(n * 10) / 10), dimensao: p.DimensionId, modo_de_jogo: p.PlayerGameMode,
+            nivel_xp: p.PlayerLevel, armadura: itemsOf(p.Armor), mao_secundaria: itemsOf(p.Offhand), inventario: itemsOf(p.Inventory), bau_do_fim: itemsOf(p.EnderChestInventory) });
+        } else if (!NOT_CHUNK.test(k) && (k.length === 9 || k.length === 13) && k.charCodeAt(k.length - 1) === 49) {
+          const dim = k.length === 13 ? (k.charCodeAt(8) | (k.charCodeAt(9) << 8)) : 0;
+          for (const root of NBT.readRoots(v)) {
+            const d = plainComp(root), its = itemsOf(d.Items);
+            if (BOX_IDS.includes(d.id) && its.length) boxes.push({ tipo: d.id, x: d.x, y: d.y, z: d.z, dimensao: dim, itens: its });
+          }
+        }
+      } catch (e) { erros.push(k.replace(/[^\x20-\x7e]/g, '?') + ': ' + e.message); }
+    }
+    boxes.sort((a, b) => a.dimensao - b.dimensao || a.x - b.x || a.y - b.y || a.z - b.z);
+    return { players, boxes, erros };
+  }
+  function renderDbInfo(info, nKeys, ldbCount, nLogs) {
+    const card = (it) => `<div class="inv-item"><div class="slot-tag">${it.slot !== undefined ? 'slot ' + esc(it.slot) : ''}</div><div class="item-name">${esc(it.item)}</div><div class="item-count">x${esc(it.qtd)}${it.nome ? ' • ' + esc(it.nome) : ''}${it.encantos ? ' • ' + esc(it.encantos.join(' ')) : ''}</div></div>`;
+    const grid = (title, arr) => arr.length ? `<div style="margin:10px 0 4px"><b>${title}</b> <span style="color:var(--muted)">(${arr.length})</span></div><div class="inv-slot-grid">${arr.map(card).join('')}</div>` : '';
+    renderInventory();
+    const agg = (its) => { const m = new Map(); for (const i of its) m.set(i.item, (m.get(i.item) || 0) + i.qtd); return [...m].map(([n, q]) => esc(n) + ' ×' + q).join(', '); };
+    $('extractedItemsGrid').style.display = 'block';
+    $('extractedItemsGrid').innerHTML = info.boxes.length ? info.boxes.slice(0, 200).map(b =>
+      `<div style="padding:6px 0;border-bottom:1px solid var(--line)"><b>${esc(b.tipo)}</b> (${esc(b.x)}, ${esc(b.y)}, ${esc(b.z)}) dim ${esc(b.dimensao)}: <span style="color:var(--muted)">${agg(b.itens)}</span></div>`).join('')
+      : '<div style="color:var(--muted)">Nenhum baú/barril com itens encontrado.</div>';
+    $('dbJsonEditor').value = JSON.stringify({ jogadores: info.players, containers: info.boxes }, null, 2);
+    const st = $('dbStatus');
+    st.className = 'status ' + (ldbCount || info.erros.length ? 'wait' : 'ok');
+    st.textContent = `✔ ${nKeys} registros lidos de ${nLogs} arquivo(s) .log • ${info.players.length} jogador(es) • ${info.boxes.length} contêineres com itens` +
+      (ldbCount ? `\n⚠ ${ldbCount} arquivo(s) .ldb NÃO são lidos nesta versão: o que estiver neles não aparece aqui.` : '') +
+      (info.erros.length ? `\n⚠ ${info.erros.length} registro(s) não puderam ser decodificados.` : '');
+  }
+
+  /* ---- Inventário visual + editor. Grava um NOVO registro no final do .log (só se não houver .ldb) ---- */
+  const T = (ty, v) => new Map([['type', ty], ['value', v]]);
+  const L = (it, arr) => new Map([['type', 'list'], ['item_type', it], ['value', arr]]);
+  const ENCH = 'protection fire_protection feather_falling blast_protection projectile_protection thorns respiration depth_strider aqua_affinity sharpness smite bane_of_arthropods knockback fire_aspect looting efficiency silk_touch unbreaking fortune power punch flame infinity luck_of_the_sea lure frost_walker mending binding_curse vanishing_curse impaling riptide loyalty channeling multishot piercing quick_charge soul_speed swift_sneak'.split(' ');
+  const crcT = (() => { const t = new Uint32Array(256); for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? (c >>> 1) ^ 0x82F63B78 : c >>> 1; t[n] = c >>> 0; } return t; })();
+  const crc32c = (u8) => { let c = 0xFFFFFFFF; for (const b of u8) c = crcT[(c ^ b) & 255] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; };
+  const maskCrc = (c) => ((((c >>> 15) | (c << 17)) >>> 0) + 0xa282ead8) >>> 0;
+  const vw = (n) => { const a = []; while (n > 127) { a.push((n & 127) | 128); n = Math.floor(n / 128); } a.push(n); return a; };
+  function appendBatch(base, seq, entries) {
+    const b = [...new Uint8Array(8), ...new Uint8Array(4)], dv = new DataView(new ArrayBuffer(12));
+    dv.setUint32(0, seq % 2 ** 32, true); dv.setUint32(4, Math.floor(seq / 2 ** 32), true); dv.setUint32(8, entries.length, true);
+    const out = [...new Uint8Array(dv.buffer)];
+    for (const [k, v] of entries) { out.push(1, ...vw(k.length)); for (let i = 0; i < k.length; i++) out.push(k.charCodeAt(i)); out.push(...vw(v.length)); for (const x of v) out.push(x); }
+    let rem = new Uint8Array(out), off = base.length % 32768, first = true; const parts = [base];
+    for (;;) {
+      if (32768 - off < 7) { parts.push(new Uint8Array(32768 - off)); off = 0; }
+      const n = Math.min(32768 - off - 7, rem.length), data = rem.subarray(0, n), last = n === rem.length;
+      const type = first && last ? 1 : first ? 2 : last ? 4 : 3, cb = new Uint8Array(1 + n); cb[0] = type; cb.set(data, 1);
+      const h = new Uint8Array(7), hv = new DataView(h.buffer); hv.setUint32(0, maskCrc(crc32c(cb)), true); hv.setUint16(4, n, true); h[6] = type;
+      parts.push(h, data); off += 7 + n; rem = rem.subarray(n); first = false; if (last) break;
+    }
+    const all = new Uint8Array(parts.reduce((n, p) => n + p.length, 0)); let o = 0; for (const p of parts) { all.set(p, o); o += p.length; } return all;
+  }
+  function buildItem(old, f) {
+    const it = old || new Map(), set = (k, ty, v) => it.set(k, T(ty, v));
+    set('Count', 'byte', BigInt(f.count)); if (!it.has('Damage')) set('Damage', 'short', 0n); if (!it.has('WasPickedUp')) set('WasPickedUp', 'byte', 0n);
+    const changed = !it.has('Name') || it.get('Name').get('value') !== f.id; set('Name', 'string', f.id);
+    if (f.block) { if (!it.has('Block')) it.set('Block', T('compound', new Map([['name', T('string', f.id)], ['states', T('compound', new Map())], ['version', T('int', BigInt(f.ver))]])));
+      else if (changed) { const bm = it.get('Block').get('value'); bm.set('name', T('string', f.id)); bm.set('states', T('compound', new Map())); } } else it.delete('Block');
+    const tag = it.has('tag') ? it.get('tag').get('value') : new Map();
+    f.ench.length ? tag.set('ench', L('compound', f.ench.map(([id, lv]) => new Map([['id', T('short', BigInt(id))], ['lvl', T('short', BigInt(lv))]])))) : tag.delete('ench');
+    const disp = tag.has('display') ? tag.get('display').get('value') : new Map();
+    f.name ? disp.set('Name', T('string', f.name)) : disp.delete('Name'); disp.size ? tag.set('display', T('compound', disp)) : tag.delete('display');
+    f.place.length ? tag.set('CanPlaceOn', L('string', f.place)) : tag.delete('CanPlaceOn');
+    f.destroy.length ? tag.set('CanDestroy', L('string', f.destroy)) : tag.delete('CanDestroy');
+    tag.size ? it.set('tag', T('compound', tag)) : it.delete('tag'); return it;
+  }
+  function clearItem(it) { it.set('Count', T('byte', 0n)); it.set('Name', T('string', '')); it.delete('Block'); it.delete('tag'); }
+  const hue = (n) => { let h = 0; for (const c of n) h = c.charCodeAt(0) + ((h << 5) - h); return Math.abs(h) % 360; };
+  const SECTS = [['Armadura', 'Armor', 0, 4], ['Mão secundária', 'Offhand', 0, 1], ['Hotbar', 'Inventory', 0, 9], ['Inventário', 'Inventory', 9, 36], ['Baú do Fim', 'EnderChestInventory', 0, 27]];
+  function renderInventory() {
+    const E = WorldState.dbEdit, host = $('playersList'); if (!E || !E.raw.size) { host.innerHTML = '<div>Nenhum jogador encontrado nos arquivos .log.</div>'; return; }
+    if (!E.sel || !E.raw.has(E.sel.p)) E.sel = { p: [...E.raw.keys()][0] };
+    const root = E.raw.get(E.sel.p), p = plainComp(root), can = E.ldbCount === 0;
+    let h = `<select id="invPlayer" style="margin-bottom:8px">${[...E.raw.keys()].map(k => `<option ${k === E.sel.p ? 'selected' : ''}>${esc(k)}</option>`).join('')}</select>` +
+      `<div style="color:var(--muted);margin-bottom:6px">posição ${esc((p.Pos || []).map(n => Math.round(n)).join(', '))} • dim ${esc(p.DimensionId)} • nível XP ${esc(p.PlayerLevel)}</div>` +
+      (can ? '' : '<div style="color:var(--warn)">Edição desativada: este mundo tem arquivos .ldb (ainda não lidos), e a edição poderia não valer no jogo.</div>');
+    for (const [title, sect, a, z] of SECTS) {
+      const arr = p[sect]; if (!Array.isArray(arr)) continue;
+      h += `<div style="font-size:.85rem;color:var(--muted)">${title}</div><div class="sgrid">` + arr.slice(a, z).map((raw, j) => {
+        const i = a + j, it = itemOf(raw), on = E.sel.s === sect + ':' + i;
+        return `<button class="slot${on ? ' sel' : ''}${it && it.encantos ? ' ench' : ''}" data-s="${sect}:${i}" title="${it ? esc(it.item + ' ×' + it.qtd + (it.nome ? ' • ' + it.nome : '') + (it.encantos ? ' • ' + it.encantos.join(' ') : '')) : 'vazio'}">${it ? `<i style="background:hsl(${hue(it.item)},55%,45%)"></i><em>${esc(it.item.slice(0, 7))}</em>${it.qtd > 1 ? `<b>${it.qtd}</b>` : ''}` : ''}</button>`;
+      }).join('') + '</div>';
+    }
+    h += '<div id="invEd"></div>'; host.innerHTML = h;
+    $('invPlayer').onchange = (e) => { E.sel = { p: e.target.value }; renderInventory(); };
+    host.querySelectorAll('.slot').forEach(b => b.onclick = () => { E.sel.s = b.dataset.s; renderInventory(); });
+    if (E.sel.s) renderSlotEditor(root, p, can);
+  }
+  function renderSlotEditor(root, p, can) {
+    const E = WorldState.dbEdit, [sect, idx] = E.sel.s.split(':'), i = +idx, it = itemOf(p[sect][i]) || { item: '', qtd: 1 };
+    const rawIt = root.get(sect).get('value')[i], t = (p[sect][i] || {}).tag || {};
+    const ver = (JSON.stringify(p).match(/"version":(\d+)/) || [0, 18168865])[1];
+    const f = (x) => esc(x == null ? '' : x);
+    $('invEd').innerHTML = `<div class="ied"><b>${esc(sect)} • posição ${i}</b>
+      <label>Item (ex.: iron_leggings)</label><input type="text" id="ie_id" value="${f(it.item)}">
+      <label>Quantidade</label><input type="number" id="ie_cnt" min="1" max="255" value="${it.qtd}">
+      <label><input type="checkbox" id="ie_blk" ${rawIt && rawIt.has('Block') ? 'checked' : ''}> É um bloco (stone, diamond_block…)</label>
+      <label>Nome personalizado</label><input type="text" id="ie_name" value="${f((t.display || {}).Name)}">
+      <label>Encantamentos (um por linha: nome nível, ex.: sharpness 5)</label><textarea id="ie_ench" rows="3">${f((t.ench || []).map(e => (ENCH[e.id] || e.id) + ' ' + e.lvl).join('\n'))}</textarea>
+      <label>Só pode ser colocado em (CanPlaceOn, um por linha)</label><textarea id="ie_place" rows="2">${f((t.CanPlaceOn || []).join('\n'))}</textarea>
+      <label>Só pode quebrar (CanDestroy, um por linha)</label><textarea id="ie_dest" rows="2">${f((t.CanDestroy || []).join('\n'))}</textarea>
+      <div class="actions"><button class="btn btn-primary" id="ie_ok" ${can ? '' : 'disabled'}>Aplicar ao mundo</button><button class="btn" id="ie_del" ${can ? '' : 'disabled'}>Esvaziar slot</button></div><div class="status" id="ie_st"></div></div>`;
+    const lines = (id) => $(id).value.split('\n').map(x => x.trim()).filter(Boolean);
+    const done = (msg) => {
+      const ents = [...E.dirty].map(k => ['' + k, NBT.writeRoot(E.raw.get(k))]);
+      WorldState.files.set(E.logPath, appendBatch(E.baseLog, E.maxSeq + 1, ents)); updateGlobalBanner(); renderInventory();
+      $('ie_st').className = 'status ok'; $('ie_st').textContent = msg;
+    };
+    $('ie_ok').onclick = () => {
+      try {
+        const id = $('ie_id').value.trim().replace(/^minecraft:/, ''); if (!/^[a-z0-9_]+$/.test(id)) throw new Error('Item inválido (use letras minúsculas, números e _).');
+        const ench = lines('ie_ench').map(l => { const [n, lv] = l.split(/\s+/), k = /^\d+$/.test(n) ? +n : ENCH.indexOf(n.replace('minecraft:', '')); if (k < 0 || !(+lv > 0)) throw new Error('Encantamento inválido: ' + l); return [k, +lv]; });
+        const old = root.get(sect).get('value')[i];
+        root.get(sect).get('value')[i] = buildItem(old, { id: 'minecraft:' + id, count: Math.max(1, Math.min(255, +$('ie_cnt').value || 1)), block: $('ie_blk').checked, ver, name: $('ie_name').value.trim(), ench, place: lines('ie_place'), destroy: lines('ie_dest') });
+        E.dirty.add(E.sel.p); done('✔ Item gravado. Baixe o mundo (.ZIP) no topo e teste numa CÓPIA.');
+      } catch (e) { $('ie_st').className = 'status err'; $('ie_st').textContent = e.message; }
+    };
+    $('ie_del').onclick = () => { const old = root.get(sect).get('value')[i]; if (old) { clearItem(old); E.dirty.add(E.sel.p); done('✔ Slot esvaziado.'); } };
+  }
+
+  async function analyzeLevelDBFromMemory() {
+    const dbFiles = [];
+    let currentManifest = null;
+
+    for (const [path, bytes] of WorldState.files.entries()) {
+      if (path.startsWith('db/') || path.endsWith('.ldb') || path.endsWith('.log') || path.includes('MANIFEST') || path.endsWith('CURRENT')) {
+        const shortName = path.split('/').pop();
+        dbFiles.push({ path, shortName, size: bytes.length, bytes });
+        if (shortName === 'CURRENT') {
+          currentManifest = new TextDecoder().decode(bytes).trim();
+        }
+      }
+    }
+
+    if (!dbFiles.length) return;
+
+    $('manifestBadge').textContent = currentManifest ? `Ativo: ${currentManifest}` : 'CURRENT não detectado';
+    const listEl = $('dbFileList');
+    listEl.innerHTML = '';
+    dbFiles.sort((a, b) => a.shortName.localeCompare(b.shortName)).forEach(f => {
+      const div = document.createElement('div');
+      div.className = 'file-item';
+      div.innerHTML = `<span>${f.shortName}</span><span>${fmtBytes(f.size)}</span>`;
+      listEl.append(div);
+    });
+
+    // Leitor real de LevelDB: junta os .log em ordem (o mais novo vence). Tabelas .ldb ainda não são lidas.
+    const logs = dbFiles.filter(f => f.shortName.endsWith('.log')).sort((x, y) => x.shortName.localeCompare(y.shortName));
+    const ldbCount = dbFiles.filter(f => f.shortName.endsWith('.ldb')).length;
+    const kv = new Map();
+    let maxSeq = 0;
+    try { for (const f of logs) maxSeq = Math.max(maxSeq, readLogInto(f.bytes, kv)); }
+    catch (e) { $('dbStatus').className = 'status err'; $('dbStatus').textContent = 'Erro ao ler o .log: ' + e.message; return; }
+    const info = extractWorldData(kv), last = logs[logs.length - 1];
+    WorldState.dbEdit = { raw: new Map(info.players.map(p => [p.chave, NBT.readRoots(kv.get(p.chave))[0]])), dirty: new Set(), maxSeq, ldbCount,
+      logPath: last ? last.path : null, baseLog: last ? last.bytes : null, sel: null };
+    renderDbInfo(info, kv.size, ldbCount, logs.length);
+  }
+
+  /* ==========================================================================
+   * MÓDULO 3: IMPORTADOR E VISUALIZADOR DE .MSTRUCTURE
+   * ========================================================================== */
+  const structDrop = $('structDrop'), structInput = $('structInput');
+
+  structInput.addEventListener('change', async () => {
+    if (!structInput.files.length) return;
+    await loadMStructureFile(structInput.files[0]);
+  });
+  ['dragenter', 'dragover'].forEach(ev => structDrop.addEventListener(ev, e => { e.preventDefault(); structDrop.classList.add('over'); }));
+  ['dragleave', 'drop'].forEach(ev => structDrop.addEventListener(ev, e => { e.preventDefault(); structDrop.classList.remove('over'); }));
+  structDrop.addEventListener('drop', async e => {
+    if (!e.dataTransfer.files.length) return;
+    await loadMStructureFile(e.dataTransfer.files[0]);
+  });
+
+  async function loadMStructureFile(file) {
+    try {
+      const buf = new Uint8Array(await file.arrayBuffer());
+      const rawNbt = buf[0] === 10 && buf[1] === 0 && buf[2] === 0 && buf[3] !== 0;
+      const doc = rawNbt ? NBT.rawToDocument(buf) : NBT.datToDocument(buf);
+      const root = doc.get('root').get('value');
+
+      // Extrai dimensões [X, Y, Z]
+      let sizeX = 8, sizeY = 8, sizeZ = 8;
+      if (root.has('size')) {
+        const sz = root.get('size').get('value');
+        sizeX = Number(sz[0]); sizeY = Number(sz[1]); sizeZ = Number(sz[2]);
+      }
+
+      // Extrai paleta de blocos
+      const palette = [];
+      if (root.has('structure')) {
+        const structComp = root.get('structure').get('value');
+        if (structComp.has('palette')) {
+          const palDefault = structComp.get('palette').get('value').get('default');
+          if (palDefault) {
+            const blockPal = palDefault.get('value').get('block_palette');
+            if (blockPal) {
+              blockPal.get('value').forEach(bComp => {
+                const bName = bComp.get('name') ? String(bComp.get('name').get('value')) : 'minecraft:stone';
+                palette.push(bName);
+              });
+            }
+          }
+        }
+      }
+      if (palette.length === 0) palette.push('minecraft:oak_planks', 'minecraft:cobblestone', 'minecraft:glass');
+
+      // Extrai índices de blocos (layer 0)
+      let blockIndices = [];
+      if (root.has('structure') && root.get('structure').get('value').has('block_indices')) {
+        const layers = root.get('structure').get('value').get('block_indices').get('value');
+        if (layers.length > 0) blockIndices = layers[0].get('value').map(v => Number(v));
+      }
+
+      WorldState.currentStruct = {
+        name: file.name,
+        size: { x: sizeX, y: sizeY, z: sizeZ },
+        palette,
+        blockIndices,
+        rawDoc: doc
+      };
+
+      $('structDropTitle').textContent = `✅ Estrutura: ${file.name} (${sizeX} × ${sizeY} × ${sizeZ})`;
+      $('structSimpleView').classList.remove('hidden');
+      $('structJsonEditor').value = NBT.documentToText(doc);
+
+      // Configura slider de camadas Y
+      const slider = $('layerSlider');
+      slider.max = Math.max(0, sizeY - 1);
+      slider.value = 0;
+      renderPaletteUI();
+      renderStructureLayer(0);
+      updateChunkImpact();
+
+      $('structStatus').className = 'status ok';
+      $('structStatus').textContent = `✔ Estrutura carregada! Dimensões: ${sizeX}x${sizeY}x${sizeZ} (${sizeX * sizeY * sizeZ} blocos).`;
+    } catch (e) {
+      $('structStatus').className = 'status err';
+      $('structStatus').textContent = 'Erro ao ler .mcstructure: ' + e.message;
+    }
+  }
+
+  function stringToColor(str) {
+    if (str.includes('air')) return '#0b1220';
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) hash = str.charCodeAt(i) + ((hash << 5) - hash);
+    const hue = Math.abs(hash % 360);
+    return `hsl(${hue}, 65%, 52%)`;
+  }
+
+  function renderPaletteUI() {
+    const st = WorldState.currentStruct;
+    if (!st) return;
+    $('paletteCount').textContent = st.palette.length;
+    $('paletteList').innerHTML = st.palette.map((name, idx) => `
+      <div class="pal-row">
+        <span class="pal-swatch" style="background:${stringToColor(name)}"></span>
+        <span><b>[${idx}]</b> ${name}</span>
+      </div>
+    `).join('');
+  }
+
+  function renderStructureLayer(y) {
+    const st = WorldState.currentStruct;
+    if (!st) return;
+    $('layerLabel').textContent = `${y} / ${st.size.y - 1}`;
+    const canvas = $('structCanvas');
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    const cellW = Math.floor(canvas.width / Math.max(st.size.x, st.size.z, 1));
+    const cellSize = Math.max(4, Math.min(cellW, 32));
+
+    for (let x = 0; x < st.size.x; x++) {
+      for (let z = 0; z < st.size.z; z++) {
+        // Ordem padrão Bedrock .mcstructure: (x * sizeY + y) * sizeZ + z
+        const flatIdx = (x * st.size.y + y) * st.size.z + z;
+        const palIdx = st.blockIndices[flatIdx] ?? -1;
+        const blockName = palIdx >= 0 && st.palette[palIdx] ? st.palette[palIdx] : 'minecraft:air';
+
+        ctx.fillStyle = stringToColor(blockName);
+        ctx.fillRect(x * cellSize, z * cellSize, cellSize - 1, cellSize - 1);
+      }
+    }
+  }
+
+  $('layerSlider').addEventListener('input', (e) => renderStructureLayer(Number(e.target.value)));
+
+  function updateChunkImpact() {
+    const st = WorldState.currentStruct;
+    if (!st) return;
+    const tx = Number($('targetX').value) || 0;
+    const ty = Number($('targetY').value) || 64;
+    const tz = Number($('targetZ').value) || 0;
+
+    const minChunkX = Math.floor(tx / 16);
+    const maxChunkX = Math.floor((tx + st.size.x - 1) / 16);
+    const minChunkZ = Math.floor(tz / 16);
+    const maxChunkZ = Math.floor((tz + st.size.z - 1) / 16);
+    const totalChunks = (maxChunkX - minChunkX + 1) * (maxChunkZ - minChunkZ + 1);
+
+    $('chunkImpactInfo').innerHTML = `
+      <b>Destino:</b> X=${tx}, Y=${ty}, Z=${tz}<br>
+      <b>Chunks afetados:</b> ${totalChunks} chunk(s) (X: ${minChunkX}..${maxChunkX}, Z: ${minChunkZ}..${maxChunkZ})
+    `;
+  }
+
+  ['targetX', 'targetY', 'targetZ'].forEach(id => $(id).addEventListener('input', updateChunkImpact));
+
+  // A injeção real em chunks (subchunks no LevelDB) ainda não existe; o botão antigo só gravava um .json solto em db/.
+  $('injectStructBtn').disabled = true;
+  $('injectStructBtn').textContent = '🚧 Importar no mundo (em breve)';
+
+  /* ==========================================================================
+   * EXPORTAÇÃO DO MUNDO COMPLETO EM .ZIP
+   * ========================================================================== */
+  function downloadBlob(filename, bytes) {
+    const blob = new Blob([bytes], { type: 'application/octet-stream' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.append(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
+  }
+
+  $('exportWorldZipBtn').addEventListener('click', async () => {
+    if (typeof JSZip === 'undefined') {
+      alert('Biblioteca JSZip não carregada. Verifique sua conexão.');
+      return;
+    }
+    const zip = new JSZip();
+    for (const [path, bytes] of WorldState.files.entries()) {
+      zip.file(path, bytes);
+    }
+    const content = await zip.generateAsync({ type: 'uint8array' });
+    const safeName = (WorldState.worldName || 'BedrockWorld').replace(/[^a-zA-Z0-9_-]/g, '_');
+    downloadBlob(`${safeName}_editado.zip`, content);
+  });
 })();
 </script>
 </body>
